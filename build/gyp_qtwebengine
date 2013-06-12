@@ -107,6 +107,7 @@ if __name__ == '__main__':
   args.extend(["--depth=" + chrome_src])
   args.extend(['-D', 'qtwebengine_src_dir=' + qtwebengine_src])
   args.extend(['-D', 'chromium_src_dir=' + chrome_src])
+  args.extend(['-D', 'use_aura=1'])
   # Tweak the output location and format (hardcode ninja for now)
   args.extend(['--generator-output', os.path.abspath(get_output_dir())])
   args.extend(['-Goutput_dir='+ os.path.abspath(get_output_dir())])

@@ -6,6 +6,7 @@
       ['exclude', 'browser/renderer_host/render_widget_host_view_gtk\\.(cc|h)$'],
       ['exclude', 'browser/renderer_host/render_widget_host_view_mac.*\\.(mm|h)$'],
       ['exclude', 'browser/renderer_host/render_widget_host_view_win.*\\.(cc|h)$'],
+      ['exclude', 'browser/renderer_host/render_widget_host_view_aura.*\\.(cc|h)$'],
     ],
   }
 }

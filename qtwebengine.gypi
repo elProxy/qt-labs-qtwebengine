@@ -1,6 +1,7 @@
 {
   'variables': {
-    'blink_process_product_name': 'Blink Process',
+#      'toolkit_views%': 1,
+#      'toolkit_uses_gtk%': 0,
 # Define used when building the user agent. Pass as recent enough chrome with an irrealistic minor version.
       'user_agent_version': '22.42.5.2',
       'conditions': [

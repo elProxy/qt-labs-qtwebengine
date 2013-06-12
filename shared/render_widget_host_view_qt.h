@@ -87,10 +87,6 @@ public:
     virtual bool LockMouse();
     virtual void UnlockMouse();
     virtual bool IsMouseLocked();
-#if defined(TOOLKIT_GTK)
-    virtual GdkEventButton* GetLastMouseDown();
-    virtual gfx::NativeView BuildInputMethodsGtkMenu();
-#endif  // defined(TOOLKIT_GTK)
     virtual void WasShown();
     virtual void WasHidden();
     virtual void MovePluginWindows(const gfx::Vector2d&, const std::vector<webkit::npapi::WebPluginGeometry>&);
