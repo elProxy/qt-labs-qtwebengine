@@ -41,9 +41,6 @@
 
 #include "qwebcontentsview.h"
 
-// Needed to get access to content::GetContentClient()
-#define CONTENT_IMPLEMENTATION
-
 #include "content/public/browser/web_contents.h"
 
 #include "browser_context_qt.h"
