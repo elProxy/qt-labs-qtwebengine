@@ -71,6 +71,7 @@ public:
     virtual void InitAsPopup(content::RenderWidgetHostView*, const gfx::Rect&);
     virtual void InitAsFullscreen(content::RenderWidgetHostView*);
     virtual content::RenderWidgetHost* GetRenderWidgetHost() const;
+    virtual gfx::Size GetPhysicalBackingSize() const;
     virtual void SetSize(const gfx::Size& size);
     virtual void SetBounds(const gfx::Rect& rect);
     virtual gfx::NativeView GetNativeView() const;

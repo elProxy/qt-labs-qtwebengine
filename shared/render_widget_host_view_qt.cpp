@@ -160,6 +160,13 @@ content::RenderWidgetHost* RenderWidgetHostViewQt::GetRenderWidgetHost() const
     return m_host;
 }
 
+gfx::Size RenderWidgetHostViewQt::GetPhysicalBackingSize() const
+{
+    if (!m_nativeView)
+        return m_requestedSize;
+    return gfx::Size(m_nativeView->screenRect().width(), m_nativeView->screenRect().height());
+}
+
 void RenderWidgetHostViewQt::SetSize(const gfx::Size& size)
 {
     int width = size.width();
