@@ -107,8 +107,7 @@ void BackingStoreQt::PaintToBackingStore(content::RenderProcessHost *process,
     int height = m_pixelBuffer.size().height();
     QImage img(bitmapData, pixel_bitmap_rect.width(), pixel_bitmap_rect.height(), QImage::Format_ARGB32);
 
-    m_painter.begin(&m_pixelBuffer);
-
+    QPainter painter(&m_pixelBuffer);
     for (size_t i = 0; i < copy_rects.size(); ++i) {
         gfx::Rect copy_rect = gfx::ToEnclosedRect(gfx::ScaleRect(copy_rects[i], scale_factor));
 
@@ -122,10 +121,8 @@ void BackingStoreQt::PaintToBackingStore(content::RenderProcessHost *process,
                                  , copy_rect.width()
                                  , copy_rect.height());
 
-        m_painter.drawPixmap(destination, QPixmap::fromImage(img), source);
+        painter.drawPixmap(destination, QPixmap::fromImage(img), source);
     }
-
-    m_painter.end();
 }
 
 void BackingStoreQt::ScrollBackingStore(const gfx::Vector2d &delta, const gfx::Rect &clip_rect, const gfx::Size &view_size)

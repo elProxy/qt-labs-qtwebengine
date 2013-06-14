@@ -51,13 +51,14 @@
 static const int kTestWindowWidth = 800;
 static const int kTestWindowHeight = 600;
 
-WebContentsDelegateQt::WebContentsDelegateQt(content::WebContents* web_contents)
+WebContentsDelegateQt::WebContentsDelegateQt(content::WebContents* web_contents, NativeViewQt* nativeView)
     : m_webContents(web_contents)
+    , m_nativeView(nativeView)
 {
     m_webContents->SetDelegate(this);
 }
 
-WebContentsDelegateQt* WebContentsDelegateQt::CreateNewWindow(content::BrowserContext* browser_context, content::SiteInstance* site_instance, int routing_id, const gfx::Size& initial_size)
+WebContentsDelegateQt* WebContentsDelegateQt::CreateNewWindow(NativeViewQt* nativeView, content::BrowserContext* browser_context, content::SiteInstance* site_instance, int routing_id, const gfx::Size& initial_size)
 {
     content::WebContents::CreateParams create_params(browser_context, site_instance);
     create_params.routing_id = routing_id;
@@ -67,7 +68,7 @@ WebContentsDelegateQt* WebContentsDelegateQt::CreateNewWindow(content::BrowserCo
         create_params.initial_size = gfx::Size(kTestWindowWidth, kTestWindowHeight);
     content::WebContents::Create(create_params);
     content::WebContents* web_contents = content::WebContents::Create(create_params);
-    WebContentsDelegateQt* delegate = new WebContentsDelegateQt(web_contents);
+    WebContentsDelegateQt* delegate = new WebContentsDelegateQt(web_contents, nativeView);
 
     content::RendererPreferences* rendererPrefs = delegate->m_webContents->GetMutableRendererPrefs();
     rendererPrefs->use_custom_colors = true;

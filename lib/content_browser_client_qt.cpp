@@ -93,7 +93,6 @@ private:
     DISALLOW_COPY_AND_ASSIGN(BrowserMainPartsQt);
 };
 
-
 content::WebContentsViewPort* ContentBrowserClientQt::OverrideCreateWebContentsView(content::WebContents* web_contents, content::RenderViewHostDelegateView** render_view_host_delegate_view)
 {
     fprintf(stderr, "OverrideCreateWebContentsView\n");

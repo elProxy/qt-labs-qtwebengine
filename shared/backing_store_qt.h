@@ -64,7 +64,6 @@ public:
     virtual bool CopyFromBackingStore(const gfx::Rect &rect, skia::PlatformBitmap *output);
 
 private:
-    QPainter m_painter;
     content::RenderWidgetHost* m_host;
     QPixmap m_pixelBuffer;
     bool m_isValid;

@@ -64,8 +64,15 @@ Q_SIGNALS:
     void titleChanged(const QString& title);
     void urlChanged(const QUrl& url);
 
+protected:
+    void paintEvent(QPaintEvent *event);
+    void resizeEvent(QResizeEvent *resizeEvent);
+    bool event(QEvent *event);
+
 private:
-    QScopedPointer<QWebContentsViewPrivate> d;
+    Q_DECLARE_PRIVATE(QWebContentsView)
+    // Hides QObject::d_ptr allowing us to use the convenience macros.
+    QScopedPointer<QWebContentsViewPrivate> d_ptr;
 };
 
 #endif // QWEBCONTESTSVIEW_H

@@ -63,6 +63,7 @@ public:
     ~RenderWidgetHostViewQt();
 
     bool handleEvent(QEvent* event);
+    void InitWithContainer(NativeViewQt* nativeView);
 
     virtual content::BackingStore *AllocBackingStore(const gfx::Size &size);
 
@@ -131,7 +132,7 @@ private:
     bool IsPopup() const;
 
     content::RenderWidgetHostImpl *m_host;
-    NativeViewQt *m_view;
+    NativeViewQt *m_nativeView;
     gfx::Size m_requestedSize;
 
     // This is true when we are currently painting and thus should handle extra

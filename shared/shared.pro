@@ -24,11 +24,9 @@ SOURCES = \
         backing_store_qt.cpp \
         render_widget_host_view_qt.cpp \
         web_event_factory.cpp \
-        native_view_qt.cpp
 
 HEADERS = \
         backing_store_qt.h \
-        native_view_container_qt.h \
         native_view_qt.h \
         render_widget_host_view_qt.h \
         web_event_factory.h

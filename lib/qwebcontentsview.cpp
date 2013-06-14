@@ -52,29 +52,40 @@
 #include "web_contents_view_qt.h"
 #include "web_engine_context.h"
 
-#include <QVBoxLayout>
+#include "shared/backing_store_qt.h"
+#include "shared/native_view_qt.h"
+#include "shared/render_widget_host_view_qt.h"
+
+#include <QPaintEvent>
 #include <QUrl>
 
-class QWebContentsViewPrivate
+class QWebContentsViewPrivate : public NativeViewQt
 {
+    QWebContentsView *q_ptr;
+    Q_DECLARE_PUBLIC(QWebContentsView)
 public:
+    QWebContentsViewPrivate();
+    virtual void setRenderWidgetHostView(content::RenderWidgetHostViewQt *rwhv);
+    virtual void setBackingStore(BackingStoreQt *backingStore);
+    virtual QRectF screenRect() const;
+    virtual void show();
+    virtual void hide();
+    virtual bool isVisible() const;
+    virtual QWindow *window() const;
+    virtual void update(const QRect &rect = QRect());
+
     scoped_refptr<WebEngineContext> context;
     scoped_ptr<WebContentsDelegateQt> webContentsDelegate;
+    content::RenderWidgetHostViewQt *rwhv;
+    BackingStoreQt *backingStore;
 };
 
 QWebContentsView::QWebContentsView()
+    : d_ptr(new QWebContentsViewPrivate)
 {
-    d.reset(new QWebContentsViewPrivate);
-    // This has to be the first thing we do.
-    d->context = WebEngineContext::current();
-
-    content::BrowserContext* browser_context = static_cast<ContentBrowserClientQt*>(content::GetContentClient()->browser())->browser_context();
-    d->webContentsDelegate.reset(WebContentsDelegateQt::CreateNewWindow(browser_context, NULL, MSG_ROUTING_NONE, gfx::Size()));
-    QVBoxLayout *layout = new QVBoxLayout;
-    setLayout(layout);
-
-    WebContentsViewQt* content_view = static_cast<WebContentsViewQt*>(d->webContentsDelegate->web_contents()->GetView());
-    layout->addLayout(content_view->windowContainer()->widget());
+    d_ptr->q_ptr = this;
+    setFocusPolicy(Qt::ClickFocus);
+    setAttribute(Qt::WA_OpaquePaintEvent);
 }
 
 QWebContentsView::~QWebContentsView()
@@ -83,6 +94,7 @@ QWebContentsView::~QWebContentsView()
 
 void QWebContentsView::load(const QUrl& url)
 {
+    Q_D(QWebContentsView);
     QString urlString = url.toString();
     GURL gurl(urlString.toStdString());
     if (!gurl.has_scheme())
@@ -96,18 +108,105 @@ void QWebContentsView::load(const QUrl& url)
 
 void QWebContentsView::back()
 {
+    Q_D(QWebContentsView);
     d->webContentsDelegate->web_contents()->GetController().GoToOffset(-1);
     d->webContentsDelegate->web_contents()->GetView()->Focus();
 }
 
 void QWebContentsView::forward()
 {
+    Q_D(QWebContentsView);
     d->webContentsDelegate->web_contents()->GetController().GoToOffset(1);
     d->webContentsDelegate->web_contents()->GetView()->Focus();
 }
 
 void QWebContentsView::reload()
 {
+    Q_D(QWebContentsView);
     d->webContentsDelegate->web_contents()->GetController().Reload(false);
     d->webContentsDelegate->web_contents()->GetView()->Focus();
+}
+
+void QWebContentsView::paintEvent(QPaintEvent *event)
+{
+    Q_D(QWebContentsView);
+    if (!d->backingStore)
+        return;
+    QPainter painter(this);
+    d->backingStore->paintToTarget(&painter, event->rect());
+}
+
+void QWebContentsView::resizeEvent(QResizeEvent *resizeEvent)
+{
+    Q_D(QWebContentsView);
+    if (d->backingStore)
+        d->backingStore->resize(resizeEvent->size());
+    update();
+}
+
+bool QWebContentsView::event(QEvent *event)
+{
+    Q_D(QWebContentsView);
+    if (!d->rwhv || !d->rwhv->handleEvent(event))
+        return QWidget::event(event);
+    return true;
+}
+
+QWebContentsViewPrivate::QWebContentsViewPrivate()
+    // This has to be the first thing we do.
+    : context(WebEngineContext::current())
+    , rwhv(0)
+    , backingStore(0)
+{
+    content::BrowserContext *browser_context = static_cast<ContentBrowserClientQt *>(content::GetContentClient()->browser())->browser_context();
+    webContentsDelegate.reset(WebContentsDelegateQt::CreateNewWindow(this, browser_context, NULL, MSG_ROUTING_NONE, gfx::Size()));
+}
+
+void QWebContentsViewPrivate::setRenderWidgetHostView(content::RenderWidgetHostViewQt *rwhv)
+{
+    this->rwhv = rwhv;
+}
+
+void QWebContentsViewPrivate::setBackingStore(BackingStoreQt *backingStore)
+{
+    Q_Q(QWebContentsView);
+    this->backingStore = backingStore;
+    if (backingStore)
+        backingStore->resize(q->size());
+}
+
+QRectF QWebContentsViewPrivate::screenRect() const
+{
+    Q_Q(const QWebContentsView);
+    return QRectF(q->x(), q->y(), q->width(), q->height());
+}
+
+void QWebContentsViewPrivate::show()
+{
+    Q_Q(QWebContentsView);
+    q->show();
+}
+
+void QWebContentsViewPrivate::hide()
+{
+    Q_Q(QWebContentsView);
+    q->hide();
+}
+
+bool QWebContentsViewPrivate::isVisible() const
+{
+    Q_Q(const QWebContentsView);
+    q->isVisible();
+}
+
+QWindow*QWebContentsViewPrivate:: window() const
+{
+    Q_Q(const QWebContentsView);
+    q->windowHandle();
+}
+
+void QWebContentsViewPrivate::update(const QRect &rect)
+{
+    Q_Q(QWebContentsView);
+    q->update(rect);
 }

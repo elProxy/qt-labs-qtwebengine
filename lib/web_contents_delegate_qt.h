@@ -45,9 +45,11 @@
 #include "content/public/browser/notification_observer.h"
 #include "content/public/browser/web_contents_delegate.h"
 
+class NativeViewQt;
 
 namespace content {
     class BrowserContext;
+    class RenderWidgetHostViewQt;
     class SiteInstance;
 }
 
@@ -55,15 +57,17 @@ class WebContentsDelegateQt : public content::WebContentsDelegate
                             , public content::NotificationObserver
 {
 public:
-    static WebContentsDelegateQt* CreateNewWindow(content::BrowserContext*, content::SiteInstance*, int routing_id, const gfx::Size& initial_size);
+    static WebContentsDelegateQt* CreateNewWindow(NativeViewQt* nativeView, content::BrowserContext*, content::SiteInstance*, int routing_id, const gfx::Size& initial_size);
     content::WebContents* web_contents();
+    NativeViewQt* nativeView() const { return m_nativeView; }
 
     virtual void Observe(int, const content::NotificationSource&, const content::NotificationDetails&);
 
 private:
-    WebContentsDelegateQt(content::WebContents*);
+    WebContentsDelegateQt(content::WebContents*, NativeViewQt*);
 
     scoped_ptr<content::WebContents> m_webContents;
+    NativeViewQt* m_nativeView;
 };
 
 #endif

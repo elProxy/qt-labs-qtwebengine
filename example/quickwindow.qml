@@ -86,13 +86,6 @@ Item {
         anchors.right: parent.right
         url: "http://qt-project.org/"
 
-        Binding {
-            target: webContentsView.children[0]
-            property: 'anchors.fill'
-            value: webContentsView
-            when: webContentsView.children.length > 0
-        }
-
         onUrlChanged: addressBar.text = url
     }
 

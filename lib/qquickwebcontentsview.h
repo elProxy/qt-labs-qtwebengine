@@ -42,12 +42,12 @@
 #ifndef QQUICKWEBCONTESTSVIEW_H
 #define QQUICKWEBCONTESTSVIEW_H
 
-#include <QQuickItem>
+#include <QQuickPaintedItem>
 #include <QScopedPointer>
 
 class QQuickWebContentsViewPrivate;
 
-class Q_DECL_EXPORT QQuickWebContentsView : public QQuickItem {
+class Q_DECL_EXPORT QQuickWebContentsView : public QQuickPaintedItem {
     Q_OBJECT
     Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
 public:
@@ -68,8 +68,23 @@ Q_SIGNALS:
     void titleChanged();
     void urlChanged();
 
+protected:
+    virtual void paint(QPainter *painter);
+    virtual void geometryChanged(const QRectF &, const QRectF &);
+    virtual void focusInEvent(QFocusEvent *);
+    virtual void focusOutEvent(QFocusEvent *);
+    virtual void mousePressEvent(QMouseEvent *);
+    virtual void mouseMoveEvent(QMouseEvent *);
+    virtual void mouseReleaseEvent(QMouseEvent *);
+    virtual void mouseDoubleClickEvent(QMouseEvent *);
+    virtual void keyPressEvent(QKeyEvent *);
+    virtual void keyReleaseEvent(QKeyEvent *);
+    virtual void wheelEvent(QWheelEvent *);
+
 private:
-    QScopedPointer<QQuickWebContentsViewPrivate> d;
+    Q_DECLARE_PRIVATE(QQuickWebContentsView)
+    // Hides QObject::d_ptr allowing us to use the convenience macros.
+    QScopedPointer<QQuickWebContentsViewPrivate> d_ptr;
 };
 
 QML_DECLARE_TYPE(QQuickWebContentsView)
