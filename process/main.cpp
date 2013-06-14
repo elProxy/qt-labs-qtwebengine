@@ -40,9 +40,12 @@
 ****************************************************************************/
 
 #include "content/public/app/content_main.h"
+#include "ui/base/resource/resource_bundle.h"
+#include <QLocale>
 
 int main(int argc, const char **argv)
 {
+    ResourceBundle::InitSharedInstanceWithLocale(QLocale::system().bcp47Name().toLatin1().constData(), NULL);
     return content::ContentMain(argc, argv, 0);
 }
 
