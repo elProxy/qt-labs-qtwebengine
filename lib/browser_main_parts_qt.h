@@ -38,35 +38,67 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
+#ifndef BROWSER_MAIN_PARTS_QT_H
+#define BROWSER_MAIN_PARTS_QT_H
 
-#include "content_browser_client_qt.h"
+#include "content/public/browser/browser_main_parts.h"
 
-#include "browser_context_qt.h"
-#include "browser_main_parts_qt.h"
-#include "web_contents_view_qt.h"
+#include "base/i18n/icu_util.h"
+#include "content/public/common/main_function_params.h"
+#include "ui/base/resource/resource_bundle.h"
+#include "ui/base/ui_base_paths.h"
 
-content::WebContentsViewPort* ContentBrowserClientQt::OverrideCreateWebContentsView(content::WebContents* web_contents, content::RenderViewHostDelegateView** render_view_host_delegate_view)
+#include <QLocale>
+
+class BrowserMainPartsQt : public content::BrowserMainParts
 {
-    fprintf(stderr, "OverrideCreateWebContentsView\n");
-    WebContentsViewQt* rv = new WebContentsViewQt(web_contents);
-    *render_view_host_delegate_view = rv;
-    return rv;
-}
+public:
+    BrowserMainPartsQt(const content::MainFunctionParams& parameters)
+        : content::BrowserMainParts()
+        , m_parameters(parameters)
+        , m_runMessageLoop(true)
+    { }
 
-content::BrowserMainParts *ContentBrowserClientQt::CreateBrowserMainParts(const content::MainFunctionParams &parameters)
-{
-    m_browserMainParts = new BrowserMainPartsQt(parameters);
-    return m_browserMainParts;
-}
+    void PreMainMessageLoopStart()
+    {
+        ui::RegisterPathProvider();
+        icu_util::Initialize();
+        ResourceBundle::InitSharedInstanceWithLocale(QLocale::system().bcp47Name().toLatin1().constData(), NULL);
+    }
+    void PostMainMessageLoopStart() { }
+    void PreEarlyInitialization() { }
 
+    void PreMainMessageLoopRun() {
 
-BrowserContextQt* ContentBrowserClientQt::browser_context() {
-    return static_cast<BrowserMainPartsQt*>(m_browserMainParts)->browser_context();
-}
+        m_browserContext.reset(new BrowserContextQt());
 
-net::URLRequestContextGetter* ContentBrowserClientQt::CreateRequestContext(content::BrowserContext* content_browser_context, content::ProtocolHandlerMap* protocol_handlers)
-{
-    if (content_browser_context != browser_context())
-        fprintf(stderr, "Warning: off the record browser context not implemented !\n");
-    return static_cast<BrowserContextQt*>(browser_context())->CreateRequestContext(protocol_handlers);
-}
+        if (m_parameters.ui_task) {
+            m_parameters.ui_task->Run();
+            delete m_parameters.ui_task;
+            m_runMessageLoop = false;
+        }
+    }
+
+    bool MainMessageLoopRun(int* result_code)  {
+        return !m_runMessageLoop;
+    }
+
+    void PostMainMessageLoopRun() {
+        m_browserContext.reset();
+    }
+
+    BrowserContextQt* browser_context() const {
+        return m_browserContext.get();
+    }
+
+private:
+    scoped_ptr<BrowserContextQt> m_browserContext;
+
+    // For running content_browsertests.
+    const content::MainFunctionParams& m_parameters;
+    bool m_runMessageLoop;
+
+    DISALLOW_COPY_AND_ASSIGN(BrowserMainPartsQt);
+};
+
+#endif // BROWSER_MAIN_PARTS_QT_H

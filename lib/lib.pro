@@ -30,6 +30,7 @@ SOURCES = \
 
 HEADERS = \
         browser_context_qt.h \
+        browser_main_parts_qt.h \
         content_browser_client_qt.h \
         qquickwebcontentsview.h \
         qwebcontentsview.h \
