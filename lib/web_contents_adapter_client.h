@@ -47,10 +47,22 @@
 #include <QString>
 #include <QUrl>
 
-
 class RenderWidgetHostViewQt;
 class RenderWidgetHostViewQtDelegate;
 class WebContentsDelegateQt;
+
+class QContextMenuData {
+    // FIXME: make this implicitely shared maybe ?
+
+public:
+    QPoint pos;
+    QUrl linkUrl;
+    QString linkText;
+    QString selectionText;
+    bool isEditable;
+
+    // friend class WebContentsDelegateQt;
+};
 
 class QWEBENGINE_EXPORT WebContentsAdapterClient {
 public:
@@ -63,6 +75,7 @@ public:
     virtual QRectF viewportRect() const = 0;
     virtual void loadFinished(bool success) = 0;
     virtual void focusContainer() = 0;
+    virtual bool contextMenuRequested(const QContextMenuData&) = 0;
 };
 
 #endif // WEB_CONTENTS_ADAPTER_CLIENT_H

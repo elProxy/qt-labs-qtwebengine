@@ -60,6 +60,11 @@
 static const int kTestWindowWidth = 800;
 static const int kTestWindowHeight = 600;
 
+static inline QUrl fromGURL(const GURL& gurl)
+{
+    return QUrl(QString::fromStdString(gurl.spec()));
+}
+
 WebContentsDelegateQt::WebContentsDelegateQt(content::BrowserContext* browser_context, content::SiteInstance* site_instance, int routing_id, const gfx::Size& initial_size)
     : m_viewClient(0)
 {
@@ -88,7 +93,7 @@ void WebContentsDelegateQt::NavigationStateChanged(const content::WebContents* s
     if (changed_flags & content::INVALIDATE_TYPE_URL) {
         Q_ASSERT(m_viewClient);
         GURL gurl = web_contents()->GetVisibleURL();
-        QUrl url(QString::fromStdString(gurl.spec()));
+        QUrl url(fromGURL(gurl));
         m_viewClient->urlChanged(url);
     }
 }
@@ -110,6 +115,24 @@ void WebContentsDelegateQt::DidFinishLoad(int64 frame_id, const GURL &validated_
         m_viewClient->loadFinished(true);
 }
 
+
+static QContextMenuData fromParams(const content::ContextMenuParams &params)
+{
+    QContextMenuData ret;
+    ret.pos = QPoint(params.x, params.y);
+    ret.linkUrl = fromGURL(params.link_url);
+    ret.linkText = QString::fromUtf16(params.link_text.data());
+    ret.selectionText = QString::fromUtf16(params.selection_text.data());
+    ret.isEditable = params.is_editable;
+    return ret;
+}
+
+bool WebContentsDelegateQt::HandleContextMenu(const content::ContextMenuParams &params)
+{
+    // Using QContextMenuEvent seemed nice, but might not work super well with this weird data from Chromium
+    QContextMenuData contextMenuData(fromParams(params));
+    return m_viewClient->contextMenuRequested(contextMenuData);
+}
 
 content::WebContents* WebContentsDelegateQt::web_contents()
 {

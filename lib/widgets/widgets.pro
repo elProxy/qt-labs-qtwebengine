@@ -9,6 +9,8 @@ MODULE = webenginewidgets
 # For our export macros
 DEFINES += QT_BUILD_WEBENGINEWIDGETS_LIB
 
+QMAKE_CXXFLAGS += -std=c++11
+
 QT += widgets
 
 # FIXME: all this should eventually be turned into QT += webenginecore

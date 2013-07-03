@@ -45,11 +45,18 @@
 #include "render_widget_host_view_qt_delegate_widget.h"
 #include "web_contents_adapter.h"
 
+#include <QAction>
+#include <QApplication>
+#include <QClipboard>
+#include <QIcon>
+#include <QMenu>
+#include <QContextMenuEvent>
 #include <QStackedLayout>
 #include <QUrl>
 
 QWebContentsViewPrivate::QWebContentsViewPrivate()
     : m_isLoading(false)
+    , m_pendingContextMenuEvent(false)
     , adapter(new WebContentsAdapter(this))
 {
 }
@@ -89,6 +96,39 @@ void QWebContentsViewPrivate::loadFinished(bool success)
 }
 
 void QWebContentsViewPrivate::focusContainer()
+bool QWebContentsViewPrivate::contextMenuRequested(const QContextMenuData &data)
+{
+    Q_Q(QWebContentsView);
+    QContextMenuEvent event(QContextMenuEvent::Mouse, data.pos, q->mapToGlobal(data.pos));
+    switch (q->contextMenuPolicy()) {
+    case Qt::PreventContextMenu:
+        return false;
+    case Qt::DefaultContextMenu:
+        m_menuData = data;
+        q->contextMenuEvent(&event);
+        break;
+    case Qt::CustomContextMenu:
+        Q_EMIT q->customContextMenuRequested(data.pos);
+        break;
+    case Qt::ActionsContextMenu:
+        if (q->actions().count()) {
+            QMenu::exec(q->actions(), event.globalPos(), 0, q);
+            break;
+        }
+        // fall through
+    default:
+        event.ignore();
+        return false;
+        break;
+    }
+
+    Q_ASSERT(m_pendingContextMenuEvent);
+    m_pendingContextMenuEvent = false;
+    m_menuData = QContextMenuData();
+    return true;
+}
+
+RenderWidgetHostViewQtDelegate *QWebContentsViewPrivate::CreateRenderWidgetHostViewQtDelegate()
 {
     Q_Q(QWebContentsView);
     q->setFocus();
@@ -151,6 +191,64 @@ void QWebContentsView::stop()
 {
     Q_D(QWebContentsView);
     d->adapter->stop();
+}
+
+bool QWebContentsView::event(QEvent *ev)
+{
+    Q_D(QWebContentsView);
+    // We swallow spontaneous contextMenu events and synthethize those back later on when we get the
+    // HandleContextMenu callback from chromium
+    if (ev->type() == QEvent::ContextMenu) {
+        Q_ASSERT(!d->m_pendingContextMenuEvent);
+        ev->accept();
+        d->m_pendingContextMenuEvent = true;
+        return true;
+    }
+    return QWidget::event(ev);
+}
+
+void QWebContentsView::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu *menu = createStandardContextMenu();
+    menu->popup(event->globalPos());
+}
+
+QMenu *QWebContentsView::createStandardContextMenu()
+{
+    Q_D(QWebContentsView);
+    QMenu *menu = new QMenu(this);
+    QAction *action = 0;
+    if (d->m_menuData.selectionText.isEmpty()) {
+        action = new QAction(QIcon::fromTheme("go-previous"), tr("&Back"), menu);
+        connect(action, &QAction::triggered, this, &QWebContentsView::back);
+        action->setEnabled(canGoBack());
+        menu->addAction(action);
+
+        action = new QAction(QIcon::fromTheme("go-next"), tr("&Forward"), menu);
+        connect(action, &QAction::triggered, this, &QWebContentsView::forward);
+        action->setEnabled(canGoForward());
+        menu->addAction(action);
+
+        action = new QAction(QIcon::fromTheme("view-refresh"), tr("&Reload"), menu);
+        connect(action, &QAction::triggered, this, &QWebContentsView::reload);
+        menu->addAction(action);
+    } else {
+        action = new QAction(QLatin1String("Copy..."), menu);
+        // FIXME: We probably can't keep "cheating" with lambdas, but for now it keeps this patch smaller ;)
+        connect(action, &QAction::triggered, [=]() { qApp->clipboard()->setText(d->m_menuData.selectionText); });
+        menu->addAction(action);
+    }
+
+    if (!d->m_menuData.linkText.isEmpty() && d->m_menuData.linkUrl.isValid()) {
+        menu->addSeparator();
+        action = new QAction(QLatin1String("Navigate to..."), menu);
+        connect(action, &QAction::triggered, [=]() { load(d->m_menuData.linkUrl); });
+        menu->addAction(action);
+        action = new QAction(QLatin1String("Copy link address"), menu);
+        connect(action, &QAction::triggered, [=]() { qApp->clipboard()->setText(d->m_menuData.linkUrl.toString()); });
+        menu->addAction(action);
+    }
+    return menu;
 }
 
 #include "moc_qwebcontentsview.cpp"

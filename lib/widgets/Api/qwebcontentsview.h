@@ -47,6 +47,9 @@
 #include <QWidget>
 #include <QScopedPointer>
 
+class QContextMenuEvent;
+class QContextMenuData;
+class QMenu;
 class QWebContentsViewPrivate;
 
 class QWEBENGINEWIDGETS_EXPORT QWebContentsView : public QWidget {
@@ -59,11 +62,17 @@ public:
     bool canGoBack() const;
     bool canGoForward() const;
 
+    QMenu* createStandardContextMenu(); // FIXME: decide if we want to keep this approach or simply expose the contextMenuData
+
 public Q_SLOTS:
     void back();
     void forward();
     void reload();
     void stop();
+
+protected:
+    virtual void contextMenuEvent(QContextMenuEvent*) Q_DECL_OVERRIDE;
+    virtual bool event(QEvent*) Q_DECL_OVERRIDE;
 
 Q_SIGNALS:
     void loadFinished(bool ok);
