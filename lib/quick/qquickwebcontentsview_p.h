@@ -54,6 +54,7 @@ class QQuickWebContentsView : public QQuickItem {
     Q_PROPERTY(QString title READ title NOTIFY titleChanged)
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY loadingStateChanged)
     Q_PROPERTY(bool canGoForward READ canGoForward NOTIFY loadingStateChanged)
+    Q_PROPERTY(QQmlComponent* contextMenu READ contextMenu WRITE setContextMenu NOTIFY contextMenuChanged)
 
 public:
     QQuickWebContentsView();
@@ -66,6 +67,9 @@ public:
     bool canGoBack() const;
     bool canGoForward() const;
 
+    void setContextMenu(QQmlComponent*);
+    QQmlComponent* contextMenu() const;
+
 public Q_SLOTS:
     void goBack();
     void goForward();
@@ -76,6 +80,7 @@ Q_SIGNALS:
     void titleChanged();
     void urlChanged();
     void loadingStateChanged();
+    void contextMenuChanged();
 
 protected:
     void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry);

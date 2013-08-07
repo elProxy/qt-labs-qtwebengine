@@ -45,11 +45,21 @@
 #include "web_contents_adapter.h"
 #include "render_widget_host_view_qt_delegate_quick.h"
 
+#include <QAbstractItemModel>
 #include <QUrl>
+
+
+class ContextMenuItems : public QAbstractItemModel {
+    Q_OBJECT
+public:
+    virtual int rowCount(const QModelIndex& = QModelIndex()) const { return m_items.size(); }
+};
+
 
 
 QQuickWebContentsViewPrivate::QQuickWebContentsViewPrivate()
     : adapter(new WebContentsAdapter(this))
+    , contextMenu(0)
 {
 }
 
@@ -95,6 +105,59 @@ void QQuickWebContentsViewPrivate::focusContainer()
 {
     Q_Q(QQuickWebContentsView);
     q->forceActiveFocus();
+}
+
+QQmlContext *QQuickWebContentsViewPrivate::createContextForComponent(QQmlComponent *component)
+{
+    Q_ASSERT(component);
+    Q_Q(const QQuickWebContentsView);
+
+    QQmlContext* baseContext = component->creationContext();
+    if (!baseContext)
+        baseContext = QQmlEngine::contextForObject(q);
+    return baseContext;
+}
+
+bool QQuickWebContentsViewPrivate::contextMenuRequested(const QContextMenuData &data)
+{
+    Q_Q(const QQuickWebContentsView);
+    if (!contextMenu)
+        return;
+
+    QScopedPointer<QQmlContext> context(createContextForComponent(contextMenu));
+
+
+    contextObject->setParent(context);
+    context->setContextProperty(QLatin1String("data"), contextObject);
+    context->setContextObject(contextObject);
+
+    QObject* object = contextMenu->beginCreate(context);
+    if (!object)
+        return;
+
+    m_itemSelector = adoptPtr(qobject_cast<QQuickItem*>(object));
+    if (!m_itemSelector)
+        return;
+
+    connect(contextObject, SIGNAL(acceptedWithOriginalIndex(int)), SLOT(selectIndex(int)));
+
+    // We enqueue these because they are triggered by m_itemSelector and will lead to its destruction.
+    connect(contextObject, SIGNAL(done()), SLOT(hidePopupMenu()), Qt::QueuedConnection);
+    if (m_selectionType == WebPopupMenuProxyQt::SingleSelection)
+        connect(contextObject, SIGNAL(acceptedWithOriginalIndex(int)), SLOT(hidePopupMenu()), Qt::QueuedConnection);
+
+    QQuickWebViewPrivate::get(m_webView)->addAttachedPropertyTo(m_itemSelector.get());
+    m_itemSelector->setParentItem(m_webView);
+
+    // Only fully create the component once we've set both a parent
+    // and the needed context and attached properties, so that the
+    // dialog can do useful stuff in Component.onCompleted().
+    component->completeCreate();
+
+
+
+
+
 }
 
 QQuickWebContentsView::QQuickWebContentsView()
@@ -165,6 +228,21 @@ bool QQuickWebContentsView::canGoForward() const
 {
     Q_D(const QQuickWebContentsView);
     return d->adapter->canGoForward();
+}
+
+void QQuickWebContentsView::setContextMenu(QQmlComponent *contextMenu)
+{
+    Q_D(QQuickWebContentsView);
+    if (d->contextMenu == contextMenu)
+        return;
+    d->contextMenu = contextMenu;
+    emit contextMenuChanged();
+}
+
+QQmlComponent *QQuickWebContentsView::contextMenu() const
+{
+    Q_D(QQuickWebContentsView);
+    return d->contextMenu;
 }
 
 void QQuickWebContentsView::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)

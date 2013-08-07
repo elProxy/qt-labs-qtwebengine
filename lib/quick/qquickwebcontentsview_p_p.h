@@ -46,6 +46,8 @@
 
 #include <QScopedPointer>
 
+class QQmlComponent;
+class QQmlContext;
 class QQuickWebContentsView;
 class RenderWidgetHostViewQtDelegateQuick;
 class WebContentsAdapter;
@@ -65,9 +67,15 @@ public:
     virtual void loadFinished(bool success) Q_DECL_OVERRIDE;
     virtual void focusContainer() Q_DECL_OVERRIDE;
     virtual bool contextMenuRequested(const QContextMenuData &) Q_DECL_OVERRIDE { return false;}
+    virtual bool contextMenuRequested(const QContextMenuData &) Q_DECL_OVERRIDE;
+
 
     QScopedPointer<WebContentsAdapter> adapter;
     friend class RenderWidgetHostViewQtDelegateQuick;
+    QQmlComponent* contextMenu;
+
+private:
+    QQmlContext* createContextForComponent(QQmlComponent*);
 };
 
 #endif // QQUICKWEBCONTENTSVIEW_P_P_H
