@@ -66,8 +66,7 @@ public:
     virtual QRectF viewportRect() const Q_DECL_OVERRIDE;
     virtual void loadFinished(bool success) Q_DECL_OVERRIDE;
     virtual void focusContainer() Q_DECL_OVERRIDE;
-    virtual bool contextMenuRequested(const QContextMenuData &) Q_DECL_OVERRIDE { return false;}
-    virtual bool contextMenuRequested(const QContextMenuData &) Q_DECL_OVERRIDE;
+    virtual bool contextMenuRequested(const QWebContextMenuData &) Q_DECL_OVERRIDE;
 
 
     QScopedPointer<WebContentsAdapter> adapter;

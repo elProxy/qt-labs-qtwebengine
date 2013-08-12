@@ -15,6 +15,9 @@ QMAKE_RPATHDIR += $$LIBPATH
 
 #DESTDIR = $$LIBPATH
 
+QMAKE_CXXFLAGS += -fPIC
+QMAKE_CFLAGS += -fPIC
+
 SOURCES = \
         qquickwebcontentsview.cpp \
         plugin.cpp \
@@ -24,5 +27,11 @@ HEADERS = \
         qquickwebcontentsview_p.h \
         qquickwebcontentsview_p_p.h \
         render_widget_host_view_qt_delegate_quick.h
+
+OTHER_FILES += \
+    qml/contextmenu.qml
+
+RESOURCES += \
+    quick.qrc
 
 load(qml_plugin)
