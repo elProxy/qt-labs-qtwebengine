@@ -96,7 +96,12 @@ void QWebContentsViewPrivate::loadFinished(bool success)
 }
 
 void QWebContentsViewPrivate::focusContainer()
-bool QWebContentsViewPrivate::contextMenuRequested(const QContextMenuData &data)
+{
+    Q_Q(QWebContentsView);
+    q->setFocus();
+}
+
+bool QWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuData &data)
 {
     Q_Q(QWebContentsView);
     QContextMenuEvent event(QContextMenuEvent::Mouse, data.pos, q->mapToGlobal(data.pos));
@@ -124,14 +129,8 @@ bool QWebContentsViewPrivate::contextMenuRequested(const QContextMenuData &data)
 
     Q_ASSERT(m_pendingContextMenuEvent);
     m_pendingContextMenuEvent = false;
-    m_menuData = QContextMenuData();
+    m_menuData = QWebContextMenuData();
     return true;
-}
-
-RenderWidgetHostViewQtDelegate *QWebContentsViewPrivate::CreateRenderWidgetHostViewQtDelegate()
-{
-    Q_Q(QWebContentsView);
-    q->setFocus();
 }
 
 RenderWidgetHostViewQtDelegate *QWebContentsViewPrivate::CreateRenderWidgetHostViewQtDelegate()

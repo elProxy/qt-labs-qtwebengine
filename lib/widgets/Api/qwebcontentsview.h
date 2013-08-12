@@ -48,7 +48,7 @@
 #include <QScopedPointer>
 
 class QContextMenuEvent;
-class QContextMenuData;
+class QWebContextMenuData;
 class QMenu;
 class QWebContentsViewPrivate;
 

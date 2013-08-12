@@ -51,7 +51,7 @@ class RenderWidgetHostViewQt;
 class RenderWidgetHostViewQtDelegate;
 class WebContentsDelegateQt;
 
-class QContextMenuData {
+class QWebContextMenuData {
     // FIXME: make this implicitely shared maybe ?
 
 public:
@@ -75,7 +75,7 @@ public:
     virtual QRectF viewportRect() const = 0;
     virtual void loadFinished(bool success) = 0;
     virtual void focusContainer() = 0;
-    virtual bool contextMenuRequested(const QContextMenuData&) = 0;
+    virtual bool contextMenuRequested(const QWebContextMenuData&) = 0;
 };
 
 #endif // WEB_CONTENTS_ADAPTER_CLIENT_H

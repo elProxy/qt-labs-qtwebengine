@@ -116,9 +116,9 @@ void WebContentsDelegateQt::DidFinishLoad(int64 frame_id, const GURL &validated_
 }
 
 
-static QContextMenuData fromParams(const content::ContextMenuParams &params)
+static QWebContextMenuData fromParams(const content::ContextMenuParams &params)
 {
-    QContextMenuData ret;
+    QWebContextMenuData ret;
     ret.pos = QPoint(params.x, params.y);
     ret.linkUrl = fromGURL(params.link_url);
     ret.linkText = QString::fromUtf16(params.link_text.data());
@@ -130,7 +130,7 @@ static QContextMenuData fromParams(const content::ContextMenuParams &params)
 bool WebContentsDelegateQt::HandleContextMenu(const content::ContextMenuParams &params)
 {
     // Using QContextMenuEvent seemed nice, but might not work super well with this weird data from Chromium
-    QContextMenuData contextMenuData(fromParams(params));
+    QWebContextMenuData contextMenuData(fromParams(params));
     return m_viewClient->contextMenuRequested(contextMenuData);
 }
 
