@@ -11,3 +11,7 @@ example/example
 *.moc
 moc_*.cpp
 *.orig
+.rcc
+*.pro.user.*
+*-nano-browser
+*.pak
