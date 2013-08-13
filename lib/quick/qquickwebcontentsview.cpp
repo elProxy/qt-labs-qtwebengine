@@ -51,6 +51,9 @@
 #include <QQmlContext>
 #include <QUrl>
 
+// Uncomment for QML debugging
+//#define UI_DELEGATES_DEBUG
+
 class MenuItem : public QObject {
 Q_OBJECT
 public:
@@ -68,6 +71,13 @@ public:
     {
     }
 
+    MenuItem(Type type, QObject *parent = 0)
+        : QObject(parent)
+        , m_type(type)
+        , m_enabled(false)
+    {
+    }
+
     inline Type type() const { return m_type; }
     inline QString text() const { return m_text; }
     inline void setEnabled(bool on) { m_enabled = on; }
@@ -80,7 +90,6 @@ private:
     QString m_text;
     Type m_type;
     bool m_enabled;
-    
 };
 
 class ContextMenuItems : public QAbstractListModel {
@@ -94,47 +103,23 @@ public:
         SeparatorRole = Qt::UserRole + 1
     };
 
-    ContextMenuItems(QQuickWebContentsView*, const QWebContextMenuData&);
+    ContextMenuItems(const QPointF &pos) : m_pos(pos) { }
     virtual int rowCount(const QModelIndex& = QModelIndex()) const { return m_items.size(); }
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
     virtual QHash<int, QByteArray> roleNames() const;
     inline QPointF pos() const { return m_pos; }
     inline int count() const { return m_items.count(); }
+    inline void addItem(MenuItem* item) { m_items.append(item); item->setParent(this); }
 
     Q_INVOKABLE void accept(int);
-    Q_INVOKABLE void reject() { emit done(); }
 
 Q_SIGNALS:
     void done();
-    
+
 private:
     QList<MenuItem*> m_items;
     QPointF m_pos;
 };
-
-ContextMenuItems::ContextMenuItems(QQuickWebContentsView *view, const QWebContextMenuData &data)
-    : m_pos(data.pos)
-{
-    MenuItem *item = 0;
-
-    item = new MenuItem(tr("Back"), this);
-    connect(item, &MenuItem::triggered, view, &QQuickWebContentsView::goBack);
-    item->setEnabled(view->canGoBack());
-    m_items.append(item);
-
-    item = new MenuItem(tr("Forward"), this);
-    connect(item, &MenuItem::triggered, view, &QQuickWebContentsView::goForward);
-    item->setEnabled(view->canGoForward());
-    m_items.append(item);
-
-    item = new MenuItem((view->isLoading()? tr("Stop") : tr("Reload")), this);
-    if (view->isLoading())
-        connect(item, &MenuItem::triggered, view, &QQuickWebContentsView::stop);
-    else
-        connect(item, &MenuItem::triggered, view, &QQuickWebContentsView::reload);
-    m_items.append(item);
-
-}
 
 QVariant ContextMenuItems::data(const QModelIndex &index, int role) const
 {
@@ -142,19 +127,14 @@ QVariant ContextMenuItems::data(const QModelIndex &index, int role) const
         return QVariant();
 
     MenuItem* item = m_items.at(index.row());
-    if (item->type() == MenuItem::Separator) {
-        if (role == SeparatorRole)
-            return true;
-        return QVariant();
-    }
 
     switch (role) {
     case Qt::DisplayRole:
         return item->text();
     case EnabledRole:
-        return item->enabled();
+        return item->enabled() && (item->type() != MenuItem::Separator);
     case SeparatorRole:
-        return false;
+        return (item->type() == MenuItem::Separator);
     }
     Q_UNREACHABLE();
     return QVariant();
@@ -171,10 +151,10 @@ QHash<int, QByteArray> ContextMenuItems::roleNames() const
     return roles;
 }
 
-void ContextMenuItems::accept(int)
+void ContextMenuItems::accept(int idx)
 {
-    Q_EMIT done();
-    deleteLater();
+    if (idx >= 0 && idx < m_items.count())
+        Q_EMIT m_items.at(idx)->triggered();
 }
 
 #include "qquickwebcontentsview.moc"
@@ -245,31 +225,56 @@ bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuDat
 {
     Q_Q(QQuickWebContentsView);
 
-    QByteArray filename = qgetenv("QTWEBENGINE_CONTEXTMENU");
-    if (!filename.isEmpty())
-        contextMenu = new QQmlComponent(qmlEngine(q), QUrl(filename), QQmlComponent::PreferSynchronous, q);
-    fprintf(stderr, "QQuickWebContentsViewPrivate::contextMenuRequested  %d\n", contextMenu->status());
-    Q_FOREACH (const QQmlError& err, contextMenu->errors())
-        fprintf(stderr, "  error: %s\n", qPrintable(err.toString()));
-
-    if (!contextMenu || contextMenu->status() != QQmlComponent::Ready)
+    if (!contextMenu || contextMenu->status() != QQmlComponent::Ready) {
+#ifdef UI_DELEGATES_DEBUG
+        Q_FOREACH (const QQmlError& err, contextMenu->errors())
+            fprintf(stderr, "  QML error: %s\n", qPrintable(err.toString()));
+#endif
         return false;
+    }
 
     QQmlContext* context(createContextForComponent(contextMenu));
 
-    ContextMenuItems *model = new ContextMenuItems(q, data);
+    ContextMenuItems *model = new ContextMenuItems(data.pos);
+
+    // Populate menu
+    MenuItem *item = 0;
+
+    item = new MenuItem(QObject::tr("Back"));
+    QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::goBack);
+    item->setEnabled(q->canGoBack());
+    model->addItem(item);
+
+    item = new MenuItem(QObject::tr("Forward"));
+    QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::goForward);
+    item->setEnabled(q->canGoForward());
+    model->addItem(item);
+
+    item = new MenuItem(MenuItem::Separator);
+    model->addItem(item);
+
+    item = new MenuItem((q->isLoading()? QObject::tr("Stop") : QObject::tr("Reload")));
+    if (q->isLoading())
+        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::stop);
+    else
+        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::reload);
+    model->addItem(item);
+
     model->setParent(context);
     context->setContextProperty(QLatin1String("model"), model);
     context->setContextObject(model);
 
-    QQuickItem* menu = qobject_cast<QQuickItem*>(contextMenu->beginCreate(context));
-    fprintf(stderr, "Foooooo  %p\n", menu);
-    if (!menu)
+    QObject* menu = contextMenu->beginCreate(context);
+    if (!menu) {
+        delete context;
         return false;
+    }
+    menu->setParent(context);
+    QObject::connect(model, &ContextMenuItems::done, context, &QObject::deleteLater, Qt::QueuedConnection);
 
-    QObject::connect(model, &ContextMenuItems::done, menu, &QQuickItem::deleteLater);
-    QObject::connect(model, &ContextMenuItems::done, context, &QQmlContext::deleteLater);
-    menu->setParentItem(q);
+    // Can prove useful when not using Qt Quick Controls' Menu
+    if (QQuickItem* item = qobject_cast<QQuickItem*>(menu))
+        item->setParentItem(q);
 
     // Now fire Component.onCompleted().
     contextMenu->completeCreate();
@@ -378,5 +383,5 @@ void QQuickWebContentsView::componentComplete()
     QQmlEngine* engine = qmlEngine(this);
     if (!engine)
         return;
-    d->contextMenu = new QQmlComponent(engine, QUrl("qrc:/qml/contextmenu.qml"), QQmlComponent::Asynchronous, this);
+    d->contextMenu = new QQmlComponent(engine, QUrl("qrc:/qt-project.org/webengine/qml/ContextMenu.qml"), QQmlComponent::Asynchronous, this);
 }

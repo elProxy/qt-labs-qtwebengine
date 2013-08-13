@@ -29,7 +29,7 @@ HEADERS = \
         render_widget_host_view_qt_delegate_quick.h
 
 OTHER_FILES += \
-    qml/contextmenu.qml
+    qml/ContextMenu.qml
 
 RESOURCES += \
     quick.qrc
