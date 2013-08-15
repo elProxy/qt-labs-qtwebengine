@@ -225,10 +225,19 @@ bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuDat
 {
     Q_Q(QQuickWebContentsView);
 
+    if (!contextMenu) {
+        QQmlEngine* engine = qmlEngine(q);
+        if (!engine)
+            return false;
+        contextMenu = new QQmlComponent(engine, QUrl("qrc:/qt-project.org/webengine/qml/ContextMenu.qml"), QQmlComponent::PreferSynchronous, q);
+    }
+
     if (!contextMenu || contextMenu->status() != QQmlComponent::Ready) {
 #ifdef UI_DELEGATES_DEBUG
-        Q_FOREACH (const QQmlError& err, contextMenu->errors())
-            fprintf(stderr, "  QML error: %s\n", qPrintable(err.toString()));
+        if (contextMenu) {
+            Q_FOREACH (const QQmlError& err, contextMenu->errors())
+                fprintf(stderr, "  QML error: %s\n", qPrintable(err.toString()));
+        }
 #endif
         return false;
     }
@@ -374,14 +383,4 @@ void QQuickWebContentsView::geometryChanged(const QRectF &newGeometry, const QRe
         Q_ASSERT(qobject_cast<RenderWidgetHostViewQtDelegateQuick *>(child));
         child->setSize(newGeometry.size());
     }
-}
-
-void QQuickWebContentsView::componentComplete()
-{
-    Q_D(QQuickWebContentsView);
-    QQuickItem::componentComplete();
-    QQmlEngine* engine = qmlEngine(this);
-    if (!engine)
-        return;
-    d->contextMenu = new QQmlComponent(engine, QUrl("qrc:/qt-project.org/webengine/qml/ContextMenu.qml"), QQmlComponent::Asynchronous, this);
 }
