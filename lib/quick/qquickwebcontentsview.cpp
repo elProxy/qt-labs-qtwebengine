@@ -52,14 +52,16 @@
 #include <QUrl>
 
 // Uncomment for QML debugging
-//#define UI_DELEGATES_DEBUG
+#define UI_DELEGATES_DEBUG
+
+class ContextMenuItems;
 
 class MenuItem : public QObject {
 Q_OBJECT
 public:
     enum Type {
         Item,
-//        Menu,
+        Menu,
         Separator
     };
 
@@ -68,6 +70,7 @@ public:
         , m_text(text)
         , m_type(type)
         , m_enabled(true)
+        , m_menu(0)
     {
     }
 
@@ -75,6 +78,7 @@ public:
         : QObject(parent)
         , m_type(type)
         , m_enabled(false)
+        , m_menu(0)
     {
     }
 
@@ -82,6 +86,7 @@ public:
     inline QString text() const { return m_text; }
     inline void setEnabled(bool on) { m_enabled = on; }
     inline bool enabled() const { return m_enabled; }
+    ContextMenuItems* menu() const;
 
 Q_SIGNALS:
     void triggered();
@@ -90,6 +95,8 @@ private:
     QString m_text;
     Type m_type;
     bool m_enabled;
+    ContextMenuItems* m_menu;
+    friend class ContextMenuItems;
 };
 
 class ContextMenuItems : public QAbstractListModel {
@@ -100,16 +107,24 @@ class ContextMenuItems : public QAbstractListModel {
 public:
     enum Roles {
         EnabledRole = Qt::UserRole,
-        SeparatorRole = Qt::UserRole + 1
+        SeparatorRole,
+        SubMenuRole
     };
 
-    ContextMenuItems(const QPointF &pos) : m_pos(pos) { }
+    ContextMenuItems(const QPointF &pos = QPointF()) : m_pos(pos) { }
     virtual int rowCount(const QModelIndex& = QModelIndex()) const { return m_items.size(); }
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
     virtual QHash<int, QByteArray> roleNames() const;
     inline QPointF pos() const { return m_pos; }
     inline int count() const { return m_items.count(); }
     inline void addItem(MenuItem* item) { m_items.append(item); item->setParent(this); }
+    ContextMenuItems* addMenu(const QString& title)
+    {
+        MenuItem* item = new MenuItem(title, this, MenuItem::Menu);
+        m_items.append(item);
+        item->m_menu = new ContextMenuItems;
+        return item->m_menu;
+    }
 
     Q_INVOKABLE void accept(int);
 
@@ -120,6 +135,12 @@ private:
     QList<MenuItem*> m_items;
     QPointF m_pos;
 };
+
+ContextMenuItems *MenuItem::menu() const
+{
+    Q_ASSERT(m_type == Menu);
+    return m_menu;
+}
 
 QVariant ContextMenuItems::data(const QModelIndex &index, int role) const
 {
@@ -135,6 +156,8 @@ QVariant ContextMenuItems::data(const QModelIndex &index, int role) const
         return item->enabled() && (item->type() != MenuItem::Separator);
     case SeparatorRole:
         return (item->type() == MenuItem::Separator);
+    case SubMenuRole:
+        return QVariant::fromValue(item->menu());
     }
     Q_UNREACHABLE();
     return QVariant();
@@ -147,6 +170,7 @@ QHash<int, QByteArray> ContextMenuItems::roleNames() const
         roles.insert(Qt::DisplayRole, QByteArray("text"));
         roles.insert(EnabledRole, QByteArray("enabled"));
         roles.insert(SeparatorRole, QByteArray("isSeparator"));
+        roles.insert(SubMenuRole, QByteArray("subMenu"));
     }
     return roles;
 }
@@ -268,6 +292,11 @@ bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuDat
     else
         QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::reload);
     model->addItem(item);
+
+    ContextMenuItems* sub = model->addMenu("Foobar");
+    sub->addItem(new MenuItem("FooFoo"));
+    sub->addItem(new MenuItem(MenuItem::Separator));
+    sub->addItem(new MenuItem("barbar"));
 
     model->setParent(context);
     context->setContextProperty(QLatin1String("model"), model);
