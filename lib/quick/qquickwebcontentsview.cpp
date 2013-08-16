@@ -46,6 +46,7 @@
 #include "render_widget_host_view_qt_delegate_quick.h"
 
 #include <QAbstractListModel>
+#include <QFileInfo>
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -245,16 +246,34 @@ QQmlContext *QQuickWebContentsViewPrivate::createContextForComponent(QQmlCompone
     return baseContext;
 }
 
+QQmlComponent *QQuickWebContentsViewPrivate::loadDefaultUIDelegate(const QString &fileName)
+{
+    Q_Q(QQuickWebContentsView);
+    QQmlEngine* engine = qmlEngine(q);
+    if (!engine)
+        return 0;
+#ifdef UI_DELEGATES_DEBUG
+    qDebug() << engine->importPathList();
+    Q_FOREACH (const QString &path, engine->importPathList()) {
+        QFileInfo fi(path + QStringLiteral("/QtWebEngine/UIDelegates/") + fileName);
+        if (fi.exists())
+            qDebug()<< "Found" << fi.absoluteFilePath();
+    }
+    engine->clearComponentCache();
+#endif
+    QLatin1String hardCoded("/home/pierre/dev/qt5/qtbase/qml/QtWebEngine/UIDelegates/");
+
+    return new QQmlComponent(engine, QUrl(hardCoded + fileName), QQmlComponent::PreferSynchronous, q);
+}
+
 bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuData &data)
 {
     Q_Q(QQuickWebContentsView);
 
-    if (!contextMenu) {
-        QQmlEngine* engine = qmlEngine(q);
-        if (!engine)
-            return false;
-        contextMenu = new QQmlComponent(engine, QUrl("qrc:/qt-project.org/webengine/qml/ContextMenu.qml"), QQmlComponent::PreferSynchronous, q);
-    }
+#ifndef UI_DELEGATES_DEBUG
+    if (!contextMenu)
+#endif
+        contextMenu = loadDefaultUIDelegate(QStringLiteral("ContextMenu.qml"));
 
     if (!contextMenu || contextMenu->status() != QQmlComponent::Ready) {
 #ifdef UI_DELEGATES_DEBUG

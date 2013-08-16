@@ -9,7 +9,6 @@ Menu {
 
     MenuContents {
             model: contextModel
-            modelData: contextModel
             menu:contextMenu
         }
     Component.onCompleted: contextMenu.popup();

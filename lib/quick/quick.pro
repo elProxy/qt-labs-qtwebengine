@@ -28,10 +28,4 @@ HEADERS = \
         qquickwebcontentsview_p_p.h \
         render_widget_host_view_qt_delegate_quick.h
 
-OTHER_FILES += \
-    qml/ContextMenu.qml
-
-RESOURCES += \
-    quick.qrc
-
 load(qml_plugin)

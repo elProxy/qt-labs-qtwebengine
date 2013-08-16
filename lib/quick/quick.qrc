@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/qt-project.org/webengine">
-        <file>qml/ContextMenu.qml</file>
-        <file>qml/MenuContents.qml</file>
-    </qresource>
-</RCC>

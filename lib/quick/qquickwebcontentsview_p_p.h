@@ -74,7 +74,8 @@ public:
     QQmlComponent* contextMenu;
 
 private:
-    QQmlContext* createContextForComponent(QQmlComponent*);
+    QQmlContext* createContextForComponent(QQmlComponent *);
+    QQmlComponent* loadDefaultUIDelegate(const QString &);
 };
 
 #endif // QQUICKWEBCONTENTSVIEW_P_P_H
