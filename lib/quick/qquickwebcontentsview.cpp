@@ -252,18 +252,18 @@ QQmlComponent *QQuickWebContentsViewPrivate::loadDefaultUIDelegate(const QString
     QQmlEngine* engine = qmlEngine(q);
     if (!engine)
         return 0;
-#ifdef UI_DELEGATES_DEBUG
-    qDebug() << engine->importPathList();
+    QString absolutePath;
     Q_FOREACH (const QString &path, engine->importPathList()) {
         QFileInfo fi(path + QStringLiteral("/QtWebEngine/UIDelegates/") + fileName);
         if (fi.exists())
-            qDebug()<< "Found" << fi.absoluteFilePath();
+            absolutePath = fi.absoluteFilePath();
     }
+#ifdef UI_DELEGATES_DEBUG
+    qDebug() << engine->importPathList() << absolutePath;
     engine->clearComponentCache();
 #endif
-    QLatin1String hardCoded("/home/pierre/dev/qt5/qtbase/qml/QtWebEngine/UIDelegates/");
 
-    return new QQmlComponent(engine, QUrl(hardCoded + fileName), QQmlComponent::PreferSynchronous, q);
+    return new QQmlComponent(engine, QUrl(absolutePath), QQmlComponent::PreferSynchronous, q);
 }
 
 bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuData &data)
