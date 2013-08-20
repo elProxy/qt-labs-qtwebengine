@@ -5,6 +5,8 @@ IMPORT_VERSION = 1.0
 
 QT += qml quick
 
+QT_PRIVATE += qml-private
+
 INCLUDEPATH += ../
 
 # FIXME: all this should eventually be turned into QT += webenginecore

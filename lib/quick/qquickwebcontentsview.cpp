@@ -52,6 +52,8 @@
 #include <QQmlContext>
 #include <QUrl>
 
+#include <private/qqmlmetatype_p.h>
+
 // Uncomment for QML debugging
 #define UI_DELEGATES_DEBUG
 
@@ -59,47 +61,39 @@ class ContextMenuItems;
 
 class MenuItem : public QObject {
 Q_OBJECT
-public:
-    enum Type {
-        Item,
-        Menu,
-        Separator
-    };
+    Q_PROPERTY(QString text READ text CONSTANT FINAL)
+    Q_PROPERTY(bool enabled READ enabled NOTIFY enabledChanged)
+    Q_PROPERTY(QString iconName READ iconName CONSTANT FINAL)
 
-    MenuItem(const QString& text, QObject *parent = 0, Type type = Item)
+public:
+
+    MenuItem(const QString& text, const QString iconName = QString(), QObject *parent = 0)
         : QObject(parent)
         , m_text(text)
-        , m_type(type)
+        , m_iconName(iconName)
         , m_enabled(true)
-        , m_menu(0)
     {
     }
 
-    MenuItem(Type type, QObject *parent = 0)
-        : QObject(parent)
-        , m_type(type)
-        , m_enabled(false)
-        , m_menu(0)
-    {
-    }
 
-    inline Type type() const { return m_type; }
     inline QString text() const { return m_text; }
-    inline void setEnabled(bool on) { m_enabled = on; }
+    inline QString iconName() const { return m_iconName; }
     inline bool enabled() const { return m_enabled; }
-    ContextMenuItems* menu() const;
 
 Q_SIGNALS:
     void triggered();
+    void enabledChanged();
+
+public Q_SLOTS:
+    inline void setEnabled(bool on) { m_enabled = on; }
 
 private:
     QString m_text;
-    Type m_type;
+    QString m_iconName;
     bool m_enabled;
-    ContextMenuItems* m_menu;
-    friend class ContextMenuItems;
 };
 
+/*
 class ContextMenuItems : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(QPointF pos READ pos CONSTANT FINAL)
@@ -182,6 +176,8 @@ void ContextMenuItems::accept(int idx)
         Q_EMIT m_items.at(idx)->triggered();
 }
 
+*/
+
 #include "qquickwebcontentsview.moc"
 
 
@@ -235,7 +231,7 @@ void QQuickWebContentsViewPrivate::focusContainer()
     q->forceActiveFocus();
 }
 
-QQmlContext *QQuickWebContentsViewPrivate::createContextForComponent(QQmlComponent *component)
+QQmlContext *QQuickWebContentsViewPrivate::creationContextForComponent(QQmlComponent *component)
 {
     Q_ASSERT(component);
     Q_Q(QQuickWebContentsView);
@@ -244,6 +240,29 @@ QQmlContext *QQuickWebContentsViewPrivate::createContextForComponent(QQmlCompone
     if (!baseContext)
         baseContext = new QQmlContext(qmlEngine(q)->rootContext());
     return baseContext;
+}
+
+void QQuickWebContentsViewPrivate::addMenuItem(QObject *menuInstance, QQmlComponent *menuItemComponent, QObject *menuItem)
+{
+    Q_Q(QQuickWebContentsView);
+    if (!menuItemComponent || menuItemComponent->status() != QQmlComponent::Ready) {
+#ifdef UI_DELEGATES_DEBUG
+        if (menuItemComponent) {
+            Q_FOREACH (const QQmlError& err, menuItemComponent->errors())
+                fprintf(stderr, "  component error: %s\n", qPrintable(err.toString()));
+        }
+#endif
+    }
+
+    QQmlContext *itemContext = creationContextForComponent(menuItemComponent);
+    QObject* it = menuItemComponent->beginCreate(itemContext);
+    itemContext->setContextProperty(QLatin1String("item"), menuItem);
+    menuItemComponent->completeCreate();
+    it->setParent(menuInstance);
+
+    QQmlListReference entries(menuInstance, QQmlMetaType::defaultProperty(menuInstance).name(), qmlEngine(q));
+    if (entries.isValid())
+        entries.append(it);
 }
 
 QQmlComponent *QQuickWebContentsViewPrivate::loadDefaultUIDelegate(const QString &fileName)
@@ -260,7 +279,6 @@ QQmlComponent *QQuickWebContentsViewPrivate::loadDefaultUIDelegate(const QString
     }
 #ifdef UI_DELEGATES_DEBUG
     qDebug() << engine->importPathList() << absolutePath;
-    engine->clearComponentCache();
 #endif
 
     return new QQmlComponent(engine, QUrl(absolutePath), QQmlComponent::PreferSynchronous, q);
@@ -273,7 +291,7 @@ bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuDat
 #ifndef UI_DELEGATES_DEBUG
     if (!contextMenu)
 #endif
-        contextMenu = loadDefaultUIDelegate(QStringLiteral("ContextMenu.qml"));
+        contextMenu = loadDefaultUIDelegate(QStringLiteral("WebContextMenu.qml"));
 
     if (!contextMenu || contextMenu->status() != QQmlComponent::Ready) {
 #ifdef UI_DELEGATES_DEBUG
@@ -285,56 +303,66 @@ bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuDat
         return false;
     }
 
-    QQmlContext* context(createContextForComponent(contextMenu));
+    QQmlComponent *menuComp = loadDefaultUIDelegate(QStringLiteral("WebMenu.qml"));
+    QQmlComponent *menuItemComp = loadDefaultUIDelegate(QStringLiteral("WebMenuItem.qml"));
+    QQmlComponent *menuSeparator = loadDefaultUIDelegate(QStringLiteral("WebMenuSeparator.qml"));
 
-    ContextMenuItems *model = new ContextMenuItems(data.pos);
 
-    // Populate menu
+    QQmlContext* context(creationContextForComponent(contextMenu));
+
+//    QObject* menuContents = contextMenu->beginCreate(context);
+//    if (!menuContents) {
+//        delete context;
+//        return false;
+//    }
+
+    QObject* menu = menuComp->beginCreate(context);
+    if (!menu) {
+//        delete menuContents;
+        return false;
+    }
+
+    // TODO: get prepended items from MenuContents  ----------------------------------------------------------
+
+    // Populate our menu
     MenuItem *item = 0;
 
-    item = new MenuItem(QObject::tr("Back"));
+    item = new MenuItem(QObject::tr("Back"), QStringLiteral("go-previous"));
     QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::goBack);
     item->setEnabled(q->canGoBack());
-    model->addItem(item);
+    addMenuItem(menu, menuItemComp, item);
 
-    item = new MenuItem(QObject::tr("Forward"));
+
+    item = new MenuItem(QObject::tr("Forward"), QStringLiteral("go-next"));
     QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::goForward);
     item->setEnabled(q->canGoForward());
-    model->addItem(item);
+    addMenuItem(menu, menuItemComp, item);
 
-    item = new MenuItem(MenuItem::Separator);
-    model->addItem(item);
 
-    item = new MenuItem((q->isLoading()? QObject::tr("Stop") : QObject::tr("Reload")));
+
+    item = new MenuItem((q->isLoading()? QObject::tr("Stop") : QObject::tr("Reload")), (q->isLoading()? QString() : QStringLiteral("view-refresh")));
     if (q->isLoading())
         QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::stop);
     else
         QObject::connect(item, &MenuItem::triggered, q, &QQuickWebContentsView::reload);
-    model->addItem(item);
+    addMenuItem(menu, menuItemComp, item);
 
-    ContextMenuItems* sub = model->addMenu("Foobar");
-    sub->addItem(new MenuItem("FooFoo"));
-    sub->addItem(new MenuItem(MenuItem::Separator));
-    sub->addItem(new MenuItem("barbar"));
+//    ContextMenuItems* sub = model->addMenu("Foobar");
+//    sub->addItem(new MenuItem("FooFoo"));
+//    sub->addItem(new MenuItem(MenuItem::Separator));
+//    sub->addItem(new MenuItem("barbar"));
 
-    model->setParent(context);
-    context->setContextProperty(QLatin1String("model"), model);
-    context->setContextObject(model);
-
-    QObject* menu = contextMenu->beginCreate(context);
-    if (!menu) {
-        delete context;
-        return false;
-    }
-    menu->setParent(context);
-    QObject::connect(model, &ContextMenuItems::done, context, &QObject::deleteLater, Qt::QueuedConnection);
+    // FIXME: Don't leak ==========================================================
+//    menu->setParent(context);
+//    QObject::connect(model, &ContextMenuItems::done, context, &QObject::deleteLater, Qt::QueuedConnection);
 
     // Can prove useful when not using Qt Quick Controls' Menu
     if (QQuickItem* item = qobject_cast<QQuickItem*>(menu))
         item->setParentItem(q);
 
     // Now fire Component.onCompleted().
-    contextMenu->completeCreate();
+    menuComp->completeCreate();
+//    contextMenu->completeCreate();
     return true;
 }
 
