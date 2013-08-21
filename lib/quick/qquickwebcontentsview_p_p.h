@@ -51,6 +51,7 @@ class QQmlContext;
 class QQuickWebContentsView;
 class RenderWidgetHostViewQtDelegateQuick;
 class WebContentsAdapter;
+class MenuItem;
 
 class QQuickWebContentsViewPrivate : public WebContentsAdapterClient
 {
@@ -71,12 +72,18 @@ public:
 
     QScopedPointer<WebContentsAdapter> adapter;
     friend class RenderWidgetHostViewQtDelegateQuick;
-    QQmlComponent* contextMenu;
+    QQmlComponent* contextMenuExtraItems;
+    QQmlComponent* menuComponent;
+    QQmlComponent* menuItemComponent;
+    QQmlComponent* menuSeparatorComponent;
 
 private:
+    bool ensureComponentLoaded(QQmlComponent *&, const QString &);
     QQmlContext* creationContextForComponent(QQmlComponent *);
     QQmlComponent* loadDefaultUIDelegate(const QString &);
-    void addMenuItem(QObject *menuInstance, QQmlComponent *menuItemComponent, QObject *menuItem);
+    void addMenuItem(QObject *menu, MenuItem *menuItem);
+    void addMenuSeparator(QObject *menu);
+    QObject* addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
 };
 
 #endif // QQUICKWEBCONTENTSVIEW_P_P_H
