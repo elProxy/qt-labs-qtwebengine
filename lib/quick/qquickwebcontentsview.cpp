@@ -50,21 +50,18 @@
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
+#include <QQmlProperty>
 #include <QUrl>
 
 #include <private/qqmlmetatype_p.h>
 
 // Uncomment for QML debugging
-//#define UI_DELEGATES_DEBUG
+#define UI_DELEGATES_DEBUG
 
 class ContextMenuItems;
 
 class MenuItem : public QObject {
 Q_OBJECT
-    Q_PROPERTY(QString text READ text CONSTANT FINAL)
-    Q_PROPERTY(bool enabled READ enabled CONSTANT FINAL)
-    Q_PROPERTY(QString iconName READ iconName CONSTANT FINAL)
-
 public:
 
     MenuItem(const QString& text, const QString iconName = QString(), QObject *parent = 0)
@@ -75,16 +72,13 @@ public:
     {
     }
 
-
     inline QString text() const { return m_text; }
     inline QString iconName() const { return m_iconName; }
     inline bool enabled() const { return m_enabled; }
+    inline void setEnabled(bool on) { m_enabled = on; }
 
 Q_SIGNALS:
     void triggered();
-
-public Q_SLOTS:
-    inline void setEnabled(bool on) { m_enabled = on; }
 
 private:
     QString m_text;
@@ -179,15 +173,34 @@ QQmlContext *QQuickWebContentsViewPrivate::creationContextForComponent(QQmlCompo
     return baseContext;
 }
 
+static void initFromMenuItem(QObject* qmlItem, MenuItem* item) {
+    Q_ASSERT(item);
+    QQmlProperty prop(qmlItem, QStringLiteral("text"));
+    prop.write(item->text());
+    prop = QQmlProperty(qmlItem, QStringLiteral("iconName"));
+    prop.write(item->iconName());
+    prop = QQmlProperty(qmlItem, QStringLiteral("enabled"));
+    prop.write(item->enabled());
+    prop = QQmlProperty(qmlItem, QStringLiteral("onTriggered"));
+#ifdef UI_DELEGATES_DEBUG
+    if (!prop.isSignalProperty())
+        fprintf(stderr, "MenuItem is missing onTriggered signal property\n");
+#endif
+    QObject::connect(qmlItem, prop.method(), item, QMetaMethod::fromSignal(&MenuItem::triggered));
+
+}
+
+
 void QQuickWebContentsViewPrivate::addMenuItem(QObject *menu, MenuItem *menuItem)
 {
     Q_Q(QQuickWebContentsView);
-    if (!ensureComponentLoaded(menuItemComponent, QStringLiteral("WebMenuItem.qml")))
+    if (!ensureComponentLoaded(menuItemComponent, QStringLiteral("MenuItem.qml")))
         return;
 
-    QQmlContext *itemContext = creationContextForComponent(menuItemComponent);
-    itemContext->setContextProperty(QLatin1String("item"), menuItem);
-    QObject* it = menuItemComponent->create(itemContext);
+    QObject* it = menuItemComponent->create(creationContextForComponent(menuItemComponent));
+    initFromMenuItem(it, menuItem);
+    menuItem->setParent(it); // cleanup purposes
+
     it->setParent(menu);
 
     QQmlListReference entries(menu, QQmlMetaType::defaultProperty(menu).name(), qmlEngine(q));
@@ -198,7 +211,7 @@ void QQuickWebContentsViewPrivate::addMenuItem(QObject *menu, MenuItem *menuItem
 void QQuickWebContentsViewPrivate::addMenuSeparator(QObject *menu)
 {
     Q_Q(QQuickWebContentsView);
-    if (!ensureComponentLoaded(menuSeparatorComponent, QStringLiteral("WebMenuItem.qml")))
+    if (!ensureComponentLoaded(menuSeparatorComponent, QStringLiteral("MenuSeparator.qml")))
         return;
 
     QQmlContext *itemContext = creationContextForComponent(menuSeparatorComponent);
@@ -213,22 +226,36 @@ void QQuickWebContentsViewPrivate::addMenuSeparator(QObject *menu)
 QObject *QQuickWebContentsViewPrivate::addMenu(QObject *parentMenu, const QString &title, const QPoint& pos)
 {
     Q_Q(QQuickWebContentsView);
-    if (!ensureComponentLoaded(menuComponent, QStringLiteral("WebMenu.qml")))
+    if (!ensureComponentLoaded(menuComponent, QStringLiteral("Menu.qml")))
         return 0;
     QQmlContext *context(creationContextForComponent(menuComponent));
-    QObject *sub = menuComponent->beginCreate(context);
-    context->setContextProperty(QLatin1String("menuTitle"), title);
-    context->setContextProperty(QLatin1String("pos"), pos);
+    QObject *menu = menuComponent->beginCreate(context);
+    // Useful when not using Qt Quick Controls' Menu
+    if (QQuickItem* item = qobject_cast<QQuickItem*>(menu))
+        item->setParentItem(q);
     menuComponent->completeCreate();
 
-    if (parentMenu) {
-        sub->setParent(parentMenu);
+    if (!title.isEmpty()) {
+        QQmlProperty titleProp(menu, QStringLiteral("title"));
+        titleProp.write(title);
+    }
+    if (!pos.isNull()) {
+        QQmlProperty posProp(menu, QStringLiteral("pos"));
+        posProp.write(pos);
+    }
+    if (!parentMenu) {
+        QQmlProperty doneSignal(menu, QStringLiteral("onDone"));
+        static int deleteLaterIndex = menu->metaObject()->indexOfSlot("deleteLater()");
+        if (doneSignal.isSignalProperty())
+            QObject::connect(menu, doneSignal.method(), menu, menu->metaObject()->method(deleteLaterIndex));
+    } else {
+        menu->setParent(parentMenu);
 
         QQmlListReference entries(parentMenu, QQmlMetaType::defaultProperty(parentMenu).name(), qmlEngine(q));
         if (entries.isValid())
-            entries.append(sub);
+            entries.append(menu);
     }
-    return sub;
+    return menu;
 }
 
 QQmlComponent *QQuickWebContentsViewPrivate::loadDefaultUIDelegate(const QString &fileName)
@@ -278,22 +305,14 @@ bool QQuickWebContentsViewPrivate::contextMenuRequested(const QWebContextMenuDat
     addMenuItem(sub, new MenuItem("barbar winter bok"));
 
     if (contextMenuExtraItems) {
+        addMenuSeparator(menu);
         if (QObject* menuExtras = contextMenuExtraItems->create(creationContextForComponent(contextMenuExtraItems))) {
-            addMenuSeparator(menu);
             menuExtras->setParent(menu);
             QQmlListReference entries(menu, QQmlMetaType::defaultProperty(menu).name(), qmlEngine(q));
             if (entries.isValid())
                 entries.append(menuExtras);
         }
     }
-
-
-    // FIXME: Don't leak the menu... ==========================================================
-//    QObject::connect(model, &ContextMenuItems::done, context, &QObject::deleteLater, Qt::QueuedConnection);
-
-    // Useful when not using Qt Quick Controls' Menu
-    if (QQuickItem* item = qobject_cast<QQuickItem*>(menu))
-        item->setParentItem(q);
 
     // Now fire the popup() method on the top level menu
     QMetaObject::invokeMethod(menu, "popup");

@@ -4,9 +4,12 @@ TARGET = qtquick-nano-browser
 include(../common.pri)
 
 HEADERS = quickwindow.h
-SOURCES = quickwindow.cpp main.cpp
+SOURCES = quickwindow.cpp \
+          main.cpp
 
-OTHER_FILES += quickwindow.qml
+OTHER_FILES += ContextMenuExtras.qml \
+               quickwindow.qml
+
 RESOURCES += resources.qrc
 
 
