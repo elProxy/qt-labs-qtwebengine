@@ -1,8 +1,8 @@
 TARGETPATH = QtWebEngine/UIDelegates
 
 QML_FILES = \
-    WebMenu.qml \
-    WebMenuItem.qml \
-    WebMenuSeparator.qml
+    Menu.qml \
+    MenuItem.qml \
+    MenuSeparator.qml
 
 load(qml_module)

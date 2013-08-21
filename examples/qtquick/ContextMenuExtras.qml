@@ -2,17 +2,17 @@ import QtQuick 2.1
 import QtWebEngine.UIDelegates 1.0
 
 VisualItemModel {
-    WebMenuItem {
+    MenuItem {
         text: "An application specific entry"
         onTriggered: console.log("Application specific action triggered")
     }
-    WebMenu {
+    Menu {
         title: "Extras Submenu"
-        WebMenuItem {
+        MenuItem {
             text: "something"
             onTriggered: console.log("something triggered")
         }
-        WebMenuItem {
+        MenuItem {
             text: "something else"
             enabled: false
         }

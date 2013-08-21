@@ -1,4 +1,4 @@
 module QtWebEngine.UIDelegates
-WebMenu 1.0 WebMenu.qml
-WebMenuItem 1.0 WebMenuItem.qml
-WebMenuSeparator 1.0 WebMenuSeparator.qml
+Menu 1.0 Menu.qml
+MenuItem 1.0 MenuItem.qml
+MenuSeparator 1.0 MenuSeparator.qml
