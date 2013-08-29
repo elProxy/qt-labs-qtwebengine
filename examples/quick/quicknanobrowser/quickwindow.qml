@@ -38,7 +38,7 @@
 **
 ****************************************************************************/
 
-import QtQuick 2.0
+import QtQuick 2.1
 import QtWebEngine 1.0
 import QtQuick.Controls 1.0
 import QtQuick.Layouts 1.0
@@ -97,6 +97,7 @@ ApplicationWindow {
         focus: true
         anchors.fill: parent
         url: utils.initialUrl()
+        contextMenuExtraItems: ContextMenuExtras {}
 
         onUrlChanged: addressBar.text = url
     }
