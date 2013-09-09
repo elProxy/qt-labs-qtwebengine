@@ -477,9 +477,9 @@ public:
 
 public Q_SLOTS:
     // Ex-QWebFrame slots
-    QVariant evaluateJavaScript(const QString& scriptSource) { Q_UNUSED(scriptSource); Q_UNREACHABLE(); return QVariant(); };
+    QVariant evaluateJavaScript(const QString& scriptSource);
 #ifndef QT_NO_PRINTER
-    void print(QPrinter *printer) const { Q_UNUSED(printer); Q_UNREACHABLE(); };
+    void print(QPrinter *printer) const { Q_UNUSED(printer); Q_UNREACHABLE(); }
 #endif
 
 

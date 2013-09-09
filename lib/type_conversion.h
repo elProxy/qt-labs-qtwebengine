@@ -62,7 +62,7 @@ inline base::string16 toString16(const QString &qString)
 #if defined(WCHAR_T_IS_UTF16)
     return qString.toStdWString();
 #else
-    return base::string16(qString.utf16());
+    return qString.isNull() ? base::string16() : base::string16(qString.utf16());
 #endif
 }
 

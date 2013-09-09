@@ -79,6 +79,7 @@ public:
     QUrl getNavigationEntryUrl(int index);
     QString getNavigationEntryTitle(int index);
     void clearNavigationHistory();
+    void evaluateJavaScript(const QString &javaScript, const QString &xPath = QString());
 
 private:
     Q_DISABLE_COPY(WebContentsAdapter);

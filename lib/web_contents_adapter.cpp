@@ -48,19 +48,25 @@
 #include "web_contents_view_qt.h"
 #include "web_engine_context.h"
 
+#include "base/values.h"
+#include "content/public/browser/render_view_host.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/common/renderer_preferences.h"
 
 #include <QGuiApplication>
 #include <QStyleHints>
+#include <QVariant>
 
 static const int kTestWindowWidth = 800;
 static const int kTestWindowHeight = 600;
 
+using base::Value;
+
 class WebContentsAdapterPrivate {
 public:
     WebContentsAdapterPrivate();
+
     scoped_refptr<WebEngineContext> engineContext;
     scoped_ptr<content::WebContents> webContents;
     scoped_ptr<WebContentsDelegateQt> webContentsDelegate;
@@ -225,4 +231,61 @@ void WebContentsAdapter::clearNavigationHistory()
     Q_D(WebContentsAdapter);
     if (d->webContents->GetController().CanPruneAllButVisible())
         d->webContents->GetController().PruneAllButVisible();
+}
+
+static void onEvaluateJSCallback(WebContentsAdapterClient* adapterClient, const Value *result)
+{
+    QVariant ret;
+    switch (result->GetType()) {
+    case Value::TYPE_NULL:
+        break;
+    case Value::TYPE_BOOLEAN:
+    {
+        bool out;
+        if (result->GetAsBoolean(&out))
+            ret.setValue(out);
+        break;
+    }
+    case Value::TYPE_INTEGER:
+    {
+        int out;
+        if (result->GetAsInteger(&out))
+            ret.setValue(out);
+        break;
+    }
+    case Value::TYPE_DOUBLE:
+    {
+        double out;
+        if (result->GetAsDouble(&out))
+            ret.setValue(out);
+        break;
+    }
+    case Value::TYPE_STRING:
+    {
+        base::string16 out;
+        if (result->GetAsString(&out))
+            ret.setValue(toQt(out));
+        break;
+    }
+    case Value::TYPE_BINARY:
+    case Value::TYPE_DICTIONARY:
+    case Value::TYPE_LIST:
+        qWarning("Unsupported Value type: %d\n", result->GetType());
+        break;
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+
+    fprintf(stderr, "JS callback: %s\n",  qPrintable(ret.toString()));
+    adapterClient->evaluateJSCallback(ret);
+}
+
+void WebContentsAdapter::evaluateJavaScript(const QString &javaScript, const QString &xPath)
+{
+    Q_D(WebContentsAdapter);
+    if (content::RenderViewHost *rvh = d->webContents->GetRenderViewHost()) {
+        content::RenderViewHost::JavascriptResultCallback callback = base::Bind(&onEvaluateJSCallback, d->adapterClient);
+        rvh->ExecuteJavascriptInWebFrameCallbackResult(toString16(xPath), toString16(javaScript), callback);
+    }
 }

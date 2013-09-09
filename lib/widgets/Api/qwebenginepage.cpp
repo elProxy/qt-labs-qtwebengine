@@ -373,6 +373,13 @@ QUrl QWebEnginePage::url() const
     return d->adapter->activeUrl();
 }
 
+QVariant QWebEnginePage::evaluateJavaScript(const QString &scriptSource)
+{
+    Q_D(const QWebEnginePage);
+    d->adapter->evaluateJavaScript(scriptSource);
+    return QVariant();
+}
+
 QWebEnginePage *QWebEnginePage::createWindow(WebWindowType type)
 {
     Q_D(const QWebEnginePage);
