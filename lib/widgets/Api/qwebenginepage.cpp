@@ -311,6 +311,12 @@ bool QWebEnginePagePrivate::javascriptDialog(JavascriptDialogType type, const QS
     return false;
 }
 
+void QWebEnginePagePrivate::evaluateJSCallback(qint64 id, const QVariant &result)
+{
+    Q_Q(QWebEnginePage);
+    emit q->javascriptEvaluated(id, result);
+}
+
 QMenu *QWebEnginePage::createStandardContextMenu()
 {
     Q_D(QWebEnginePage);
@@ -373,11 +379,62 @@ QUrl QWebEnginePage::url() const
     return d->adapter->activeUrl();
 }
 
-QVariant QWebEnginePage::evaluateJavaScript(const QString &scriptSource)
+
+// FIXME: Decide if we want to keep QWebEngineFrame or clutter all relevant functions with extra XPath args...
+void QWebEnginePage::evaluateJavaScript(const QString &scriptSource)
 {
     Q_D(const QWebEnginePage);
-    d->adapter->evaluateJavaScript(scriptSource);
-    return QVariant();
+    d->adapter->evaluateJavaScript(WebContentsAdapter::NoResult, scriptSource);
+}
+
+namespace {
+class BlockingJavascriptEvaluationLoop : public QEventLoop {
+
+public:
+    BlockingJavascriptEvaluationLoop(qint64 token) : m_execToken(token) {}
+    QVariant evaluationResult() const { return m_result; }
+
+public Q_SLOTS:
+    void quitOnMatchingCallback(qint64 token, const QVariant &result){
+        if (token != m_execToken)
+            return;
+        m_result = result;
+        quit();
+    }
+
+private:
+    qint64 m_execToken;
+    QVariant m_result;
+};
+}
+
+/*!
+ * \brief QWebEnginePage::evaluateJavaScriptSynchronously
+ * \param scriptSource
+ * \deprecated
+ *
+ * \return Evaluates the JavaScript defined by \a scriptSource using this frame as context
+ * and returns the result of the last executed statement.
+ * This is provided for convenience of migrating from QtWebKitWidgets. In general, the asynchronous
+ * approach should be favored to get a return value.
+ *
+ * \sa QWebEnginePage::evaluateJavaScript()
+ */
+
+QVariant QWebEnginePage::evaluateJavaScriptSynchronously(const QString &scriptSource)
+{
+    Q_D(const QWebEnginePage);
+    qint64 token = d->adapter->evaluateJavaScript(WebContentsAdapter::CallbackResult, scriptSource);
+    BlockingJavascriptEvaluationLoop l(token);
+    connect(this, &QWebEnginePage::javascriptEvaluated, &l, &BlockingJavascriptEvaluationLoop::quitOnMatchingCallback);
+    l.exec();
+    return l.evaluationResult();
+}
+
+qint64 QWebEnginePage::evaluateJavaScriptAsynchronously(const QString &scriptSource)
+{
+    Q_D(const QWebEnginePage);
+    return d->adapter->evaluateJavaScript(WebContentsAdapter::CallbackResult, scriptSource);
 }
 
 QWebEnginePage *QWebEnginePage::createWindow(WebWindowType type)

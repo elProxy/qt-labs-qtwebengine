@@ -106,7 +106,7 @@ public:
     virtual void adoptNewWindow(WebContentsAdapter *newWebContents, WindowOpenDisposition disposition) = 0;
     virtual bool contextMenuRequested(const WebEngineContextMenuData&) = 0;
     virtual bool javascriptDialog(JavascriptDialogType type, const QString &message, const QString &defaultValue = QString(), QString *result = 0) = 0;
-    virtual void evaluateJSCallback(const QVariant &) /*= 0*/ {};
+    virtual void evaluateJSCallback(qint64 id, const QVariant &) = 0;
 };
 
 #endif // WEB_CONTENTS_ADAPTER_CLIENT_H

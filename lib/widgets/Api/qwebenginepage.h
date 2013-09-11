@@ -475,9 +475,14 @@ public:
 
     QWebEngineSecurityOrigin securityOrigin() const;
 
+    // Ex-QWebFrame slot
+    Q_INVOKABLE QVariant evaluateJavaScriptSynchronously(const QString& scriptSource);
+    qint64 evaluateJavaScriptAsynchronously(const QString& scriptSource);
+
 public Q_SLOTS:
-    // Ex-QWebFrame slots
-    QVariant evaluateJavaScript(const QString& scriptSource);
+    void evaluateJavaScript(const QString& scriptSource); // Now async FIXME: document in porting guide that this might screw people using invokeMethod and Q_RET
+
+    // Ex-QWebFrame slot
 #ifndef QT_NO_PRINTER
     void print(QPrinter *printer) const { Q_UNUSED(printer); Q_UNREACHABLE(); }
 #endif
@@ -533,6 +538,9 @@ Q_SIGNALS:
     void contentsSizeChanged(const QSize &size);
 
     void pageChanged();
+
+    // QtWebEngine additions
+    void javascriptEvaluated(qint64 id, const QVariant &result);
 
 protected:
     virtual QWebEnginePage *createWindow(WebWindowType type);

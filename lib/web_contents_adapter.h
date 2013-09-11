@@ -57,6 +57,11 @@ class WebContentsAdapterPrivate;
 class QWEBENGINE_EXPORT WebContentsAdapter : public QSharedData {
 
 public:
+    enum JSEvaluationType {
+        NoResult,
+        CallbackResult
+    };
+
     // Takes ownership of the WebContents.
     WebContentsAdapter(content::WebContents *webContents = 0);
     ~WebContentsAdapter();
@@ -79,7 +84,7 @@ public:
     QUrl getNavigationEntryUrl(int index);
     QString getNavigationEntryTitle(int index);
     void clearNavigationHistory();
-    void evaluateJavaScript(const QString &javaScript, const QString &xPath = QString());
+    qint64 evaluateJavaScript(JSEvaluationType evaluationType, const QString &javaScript, const QString &xPath = QString());
 
 private:
     Q_DISABLE_COPY(WebContentsAdapter);
