@@ -40,6 +40,9 @@
 
 #include <QtWebEngineWidgets>
 
+#define USE_LAMBDA_SYNTAX
+
+#ifndef USE_LAMBDA_SYNTAX
 class WebEnginePage : public QWebEnginePage
 {
 public:
@@ -54,7 +57,9 @@ public:
     }
 
 };
-
+#else
+typedef QWebEnginePage WebEnginePage;
+#endif
 
 int main(int argc, char * argv[])
 {
@@ -66,7 +71,12 @@ int main(int argc, char * argv[])
         url = QUrl("http://www.google.com/ncr");
     WebEnginePage p;
     p.load(url);
-    QObject::connect(&p, &QWebEnginePage::loadFinished, [&] (bool success) { if (!success) qApp->quit(); p.getHeadline(); });
+    QObject::connect(&p, &QWebEnginePage::loadFinished, [&](bool success) {
+		    if (!success)
+		        qApp->quit();
+		    p.evaluateJavaScriptAsynchronously(QLatin1String("document.querySelector(\"h2\").innerText"),
+			    [&](const QVariant &stuff) { fprintf(stdout, "[%s] %s\n", qPrintable(p.url().toString()), qPrintable(stuff.toString())); qApp->quit(); });
+		    });
 
     return app.exec();
 }

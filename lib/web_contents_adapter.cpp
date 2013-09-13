@@ -56,7 +56,6 @@
 
 #include <QGuiApplication>
 #include <QStyleHints>
-#include <QVariant>
 
 static const int kTestWindowWidth = 800;
 static const int kTestWindowHeight = 600;
@@ -233,8 +232,7 @@ void WebContentsAdapter::clearNavigationHistory()
         d->webContents->GetController().PruneAllButVisible();
 }
 
-static void onEvaluateJSCallback(WebContentsAdapterClient* adapterClient, qint64 token, const Value *result)
-{
+static QVariant fromJSValue(const Value *result) {
     QVariant ret;
     switch (result->GetType()) {
     case Value::TYPE_NULL:
@@ -276,24 +274,37 @@ static void onEvaluateJSCallback(WebContentsAdapterClient* adapterClient, qint64
         Q_UNREACHABLE();
         break;
     }
-
-    fprintf(stderr, "JS callback: %s\n",  qPrintable(ret.toString()));
-    adapterClient->evaluateJSCallback(token, ret);
+    return ret;
 }
 
-qint64 WebContentsAdapter::evaluateJavaScript(JSEvaluationType evaluationType, const QString &javaScript, const QString &xPath)
+static void fireSignalOnEvaluateJS(WebContentsAdapterClient* adapterClient, qint64 token, const Value *result)
+{
+    adapterClient->evaluateJSCallback(token, fromJSValue(result));
+}
+
+static void callBackOnEvaluateJS(void (*callback)(const QVariant &), const Value *result)
+{
+    callback(fromJSValue(result));
+}
+
+qint64 WebContentsAdapter::evaluateJavaScript(JSEvaluationType evaluationType, const QString &javaScript, const QString &xPath, void (*funcPtr)(const QVariant &))
 {
     Q_D(WebContentsAdapter);
     if (content::RenderViewHost *rvh = d->webContents->GetRenderViewHost()) {
         if (evaluationType == NoResult) {
             rvh->ExecuteJavascriptInWebFrame(toString16(xPath), toString16(javaScript));
             return 0;
-        } else if (evaluationType == CallbackResult) {
+        } else if (evaluationType == SignalResult) {
             static qint64 token = 0;
             token++;
-            content::RenderViewHost::JavascriptResultCallback callback = base::Bind(&onEvaluateJSCallback, d->adapterClient, token);
+            content::RenderViewHost::JavascriptResultCallback callback = base::Bind(&fireSignalOnEvaluateJS, d->adapterClient, token);
             rvh->ExecuteJavascriptInWebFrameCallbackResult(toString16(xPath), toString16(javaScript), callback);
             return token;
+        } else if (evaluationType == CallbackResult) {
+            Q_ASSERT(funcPtr);
+            content::RenderViewHost::JavascriptResultCallback callback = base::Bind(&callBackOnEvaluateJS, funcPtr);
+            rvh->ExecuteJavascriptInWebFrameCallbackResult(toString16(xPath), toString16(javaScript), callback);
+            return 0;
         }
     }
     return -1;

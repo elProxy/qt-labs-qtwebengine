@@ -47,6 +47,7 @@
 #include <QSharedData>
 #include <QString>
 #include <QUrl>
+#include <QVariant>
 
 namespace content {
 class WebContents;
@@ -59,6 +60,7 @@ class QWEBENGINE_EXPORT WebContentsAdapter : public QSharedData {
 public:
     enum JSEvaluationType {
         NoResult,
+        SignalResult,
         CallbackResult
     };
 
@@ -84,7 +86,7 @@ public:
     QUrl getNavigationEntryUrl(int index);
     QString getNavigationEntryTitle(int index);
     void clearNavigationHistory();
-    qint64 evaluateJavaScript(JSEvaluationType evaluationType, const QString &javaScript, const QString &xPath = QString());
+    qint64 evaluateJavaScript(JSEvaluationType evaluationType, const QString &javaScript, const QString &xPath = QString(), void (*)(const QVariant&) = 0);
 
 private:
     Q_DISABLE_COPY(WebContentsAdapter);
