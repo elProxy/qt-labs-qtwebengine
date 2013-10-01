@@ -9,8 +9,13 @@ CONFIG += static
 
 TARGET = qtwebengine_shared
 
+INCLUDEPATH += /Users/elproxy/dev/qt5/qtbase/include
+
 # Defining keywords such as 'signal' clashes with the chromium code base.
 DEFINES += QT_NO_KEYWORDS
+
+# something fishy with qmake in 5.2 ?
+INCLUDEPATH += $$[QT_INSTALL_HEADERS]
 
 # We need a way to tap into gyp´s Debug vs. Release configuration
 PER_CONFIG_DEFINES = QTWEBENGINEPROCESS_PATH=\\\"$$getOutDir()/%config/$$QTWEBENGINEPROCESS_NAME\\\"
