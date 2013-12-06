@@ -46,7 +46,9 @@
 #include "render_widget_host_view_qt_delegate_quick.h"
 
 #include <QAbstractListModel>
+#include <QClipboard>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -57,7 +59,7 @@
 #include <private/qqmlmetatype_p.h>
 
 // Uncomment for QML debugging
-#define UI_DELEGATES_DEBUG
+//#define UI_DELEGATES_DEBUG
 
 class MenuItem : public QObject {
 Q_OBJECT
@@ -83,6 +85,42 @@ private:
     QString m_text;
     QString m_iconName;
     bool m_enabled;
+};
+
+class CopyMenuItem : public MenuItem {
+    Q_OBJECT
+public:
+    CopyMenuItem(const QString &itemText, const QString &textToCopy)
+        : MenuItem(itemText)
+        , m_textToCopy(textToCopy)
+    {
+        connect(this, &MenuItem::triggered, this, &CopyMenuItem::onTriggered);
+    }
+
+private:
+    void onTriggered() { qApp->clipboard()->setText(m_textToCopy); }
+
+    QString m_textToCopy;
+
+};
+
+class NavigateMenuItem : public MenuItem {
+    Q_OBJECT
+public:
+    NavigateMenuItem(const QString &itemText, const QExplicitlySharedDataPointer<WebContentsAdapter> &adapter, const QUrl &targetUrl)
+        : MenuItem(itemText)
+        , m_adapter(adapter)
+        , m_targetUrl(targetUrl)
+    {
+        connect(this, &MenuItem::triggered, this, &NavigateMenuItem::onTriggered);
+    }
+
+private:
+    void onTriggered() { m_adapter->load(m_targetUrl); }
+
+    QExplicitlySharedDataPointer<WebContentsAdapter> m_adapter;
+    QUrl m_targetUrl;
+
 };
 
 #include "qquickwebengineview.moc"
@@ -140,6 +178,7 @@ RenderWidgetHostViewQtDelegate *QQuickWebEngineViewPrivate::CreateRenderWidgetHo
 #endif
     return new RenderWidgetHostViewQtDelegateQuickPainted(client);
 }
+
 bool QQuickWebEngineViewPrivate::ensureComponentLoaded(QQmlComponent *&component, const QString& fileName)
 {
 #ifndef UI_DELEGATES_DEBUG
@@ -179,10 +218,8 @@ static void initFromMenuItem(QObject* qmlItem, MenuItem* item) {
     prop = QQmlProperty(qmlItem, QStringLiteral("enabled"));
     prop.write(item->enabled());
     prop = QQmlProperty(qmlItem, QStringLiteral("onTriggered"));
-#ifdef UI_DELEGATES_DEBUG
     if (!prop.isSignalProperty())
-        fprintf(stderr, "MenuItem is missing onTriggered signal property\n");
-#endif
+        qWarning("MenuItem is missing onTriggered signal property\n");
     QObject::connect(qmlItem, prop.method(), item, QMetaMethod::fromSignal(&MenuItem::triggered));
 
 }
@@ -196,7 +233,7 @@ void QQuickWebEngineViewPrivate::addMenuItem(QObject *menu, MenuItem *menuItem)
 
     QObject* it = menuItemComponent->create(creationContextForComponent(menuItemComponent));
     initFromMenuItem(it, menuItem);
-    menuItem->setParent(it); // cleanup purposes
+    menuItem->setParent(it); // for cleanup purposes
 
     it->setParent(menu);
 
@@ -282,24 +319,31 @@ bool QQuickWebEngineViewPrivate::contextMenuRequested(const WebEngineContextMenu
     // Populate our menu
     MenuItem *item = 0;
 
-    item = new MenuItem(QObject::tr("Back"), QStringLiteral("go-previous"));
-    QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::goBack);
-    item->setEnabled(q->canGoBack());
-    addMenuItem(menu, item);
+    if (data.selectedText.isEmpty()) {
+        item = new MenuItem(QObject::tr("Back"), QStringLiteral("go-previous"));
+        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::goBack);
+        item->setEnabled(q->canGoBack());
+        addMenuItem(menu, item);
 
+        item = new MenuItem(QObject::tr("Forward"), QStringLiteral("go-next"));
+        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::goForward);
+        item->setEnabled(q->canGoForward());
+        addMenuItem(menu, item);
 
-    item = new MenuItem(QObject::tr("Forward"), QStringLiteral("go-next"));
-    QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::goForward);
-    item->setEnabled(q->canGoForward());
-    addMenuItem(menu, item);
+        item = new MenuItem(QObject::tr("Reload"), QStringLiteral("view-refresh"));
+        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::reload);
+        addMenuItem(menu, item);
+    } else {
+        item = new CopyMenuItem(QObject::tr("Copy..."), data.selectedText);
+        addMenuItem(menu, item);
+    }
 
-    item = new MenuItem(QObject::tr("Reload"), QStringLiteral("view-refresh"));
-    QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::reload);
-    addMenuItem(menu, item);
-
-    QObject* sub = addMenu(menu, QLatin1String("Foobar"));
-    addMenuItem(sub, new MenuItem("FooFoo"));
-    addMenuItem(sub, new MenuItem("barbar winter bok"));
+    if (!data.linkText.isEmpty() && data.linkUrl.isValid()) {
+        item = new NavigateMenuItem(QObject::tr("Navigate to..."), adapter, data.linkUrl);
+        addMenuItem(menu, item);
+        item = new CopyMenuItem(QObject::tr("Copy link adress"), data.linkUrl.toString());
+        addMenuItem(menu, item);
+    }
 
     if (contextMenuExtraItems) {
         addMenuSeparator(menu);
