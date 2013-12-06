@@ -51,9 +51,12 @@
 #include <QtQuick/private/qquickitem_p.h>
 
 class WebContentsAdapter;
+class MenuItem;
 
 QT_BEGIN_NAMESPACE
 class QQuickWebEngineView;
+class QQmlComponent;
+class QQmlContext;
 
 class Q_WEBENGINE_PRIVATE_EXPORT QQuickWebEngineViewport : public QObject {
     Q_OBJECT
@@ -109,8 +112,8 @@ public:
     virtual void focusContainer() Q_DECL_OVERRIDE;
     virtual void adoptNewWindow(WebContentsAdapter *newWebContents, WindowOpenDisposition disposition, const QRect &) Q_DECL_OVERRIDE;
     virtual void close() Q_DECL_OVERRIDE;
-    virtual bool contextMenuRequested(const WebEngineContextMenuData &) Q_DECL_OVERRIDE { return false;}
-    virtual bool javascriptDialog(JavascriptDialogType type, const QString &message, const QString &defaultValue = QString(), QString *result = 0) Q_DECL_OVERRIDE { return false; }
+    virtual bool contextMenuRequested(const WebEngineContextMenuData &) Q_DECL_OVERRIDE;
+    virtual bool javascriptDialog(JavascriptDialogType, const QString &message, const QString &defaultValue = QString(), QString *result = 0) Q_DECL_OVERRIDE { Q_UNUSED(message); Q_UNUSED(defaultValue); Q_UNUSED(result); return false; }
     virtual void runFileChooser(FileChooserMode, const QString &defaultFileName, const QString &title, const QStringList &acceptedMimeTypes) { Q_UNUSED(defaultFileName); Q_UNUSED(title); Q_UNUSED(acceptedMimeTypes);}
 
     void setDevicePixelRatio(qreal);
@@ -118,13 +121,25 @@ public:
     QExplicitlySharedDataPointer<WebContentsAdapter> adapter;
     QScopedPointer<QQuickWebEngineViewExperimental> e;
     QScopedPointer<QQuickWebEngineViewport> v;
+    QQmlComponent* contextMenuExtraItems;
+    QQmlComponent* menuComponent;
+    QQmlComponent* menuItemComponent;
+    QQmlComponent* menuSeparatorComponent;
     QUrl icon;
     int loadProgress;
     bool inspectable;
     qreal devicePixelRatio;
 
 private:
+    bool ensureComponentLoaded(QQmlComponent *&, const QString &);
+    QQmlContext* creationContextForComponent(QQmlComponent *);
+    QQmlComponent* loadDefaultUIDelegate(const QString &);
+    void addMenuItem(QObject *menu, MenuItem *menuItem);
+    void addMenuSeparator(QObject *menu);
+    QObject* addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
+
     qreal m_dpiScale;
+
 };
 
 QT_END_NAMESPACE

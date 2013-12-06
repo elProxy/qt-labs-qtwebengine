@@ -54,6 +54,7 @@ class Q_WEBENGINE_PRIVATE_EXPORT QQuickWebEngineView : public QQuickItem {
     Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
     Q_PROPERTY(QUrl icon READ icon NOTIFY iconChanged)
     Q_PROPERTY(bool loading READ isLoading NOTIFY loadingStateChanged)
+    Q_PROPERTY(QQmlComponent* contextMenuExtraItems READ contextMenuExtraItems WRITE setContextMenuExtraItems NOTIFY contextMenuExtraItemsChanged)
     Q_PROPERTY(int loadProgress READ loadProgress NOTIFY loadProgressChanged)
     Q_PROPERTY(QString title READ title NOTIFY titleChanged)
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY loadingStateChanged)
@@ -75,6 +76,9 @@ public:
     bool inspectable() const;
     void setInspectable(bool);
 
+    void setContextMenuExtraItems(QQmlComponent*);
+    QQmlComponent* contextMenuExtraItems() const;
+
 public Q_SLOTS:
     void goBack();
     void goForward();
@@ -85,6 +89,7 @@ Q_SIGNALS:
     void titleChanged();
     void urlChanged();
     void iconChanged();
+    void contextMenuExtraItemsChanged();
     void loadingStateChanged();
     void loadProgressChanged();
 
