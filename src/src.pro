@@ -17,6 +17,10 @@ SUBDIRS += core \
            webengine_plugin \
            webengine_experimental_plugin
 
+# FIXME: We probably want a bunch of functions and config options to tweak what to build/ship or not
+WEBENGINE_CONFIG = use_default_ui_delegates
+contains(WEBENGINE_CONFIG, use_default_ui_delegates): SUBDIRS += lib/quick/ui
+
 qtHaveModule(widgets) {
     SUBDIRS += webenginewidgets
 }
