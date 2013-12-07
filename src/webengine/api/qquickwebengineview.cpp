@@ -54,6 +54,7 @@
 #include <QQmlContext>
 #include <QQmlProperty>
 #include <QScreen>
+#include <QStringBuilder>
 #include <QUrl>
 
 #include <private/qqmlmetatype_p.h>
@@ -300,7 +301,7 @@ QQmlComponent *QQuickWebEngineViewPrivate::loadDefaultUIDelegate(const QString &
         return new QQmlComponent(q);
     QString absolutePath;
     Q_FOREACH (const QString &path, engine->importPathList()) {
-        QFileInfo fi(path + QStringLiteral("/QtWebEngine/UIDelegates/") + fileName);
+        QFileInfo fi(path % QStringLiteral("/QtWebEngine/UIDelegates/") % fileName);
         if (fi.exists())
             absolutePath = fi.absoluteFilePath();
     }
