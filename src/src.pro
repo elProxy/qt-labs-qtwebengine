@@ -19,7 +19,7 @@ SUBDIRS += core \
 
 # FIXME: We probably want a bunch of functions and config options to tweak what to build/ship or not
 WEBENGINE_CONFIG = use_default_ui_delegates
-contains(WEBENGINE_CONFIG, use_default_ui_delegates): SUBDIRS += lib/quick/ui
+contains(WEBENGINE_CONFIG, use_default_ui_delegates): SUBDIRS += webengine/ui
 
 qtHaveModule(widgets) {
     SUBDIRS += webenginewidgets

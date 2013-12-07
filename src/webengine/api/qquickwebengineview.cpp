@@ -534,19 +534,17 @@ void QQuickWebEngineView::setInspectable(bool enable)
     d->adapter->enableInspector(enable);
 }
 
-void QQuickWebEngineView::setContextMenuExtraItems(QQmlComponent *contextMenu)
+void QQuickWebEngineViewExperimental::setContextMenuExtraItems(QQmlComponent *contextMenuExtras)
 {
-    Q_D(QQuickWebEngineView);
-    if (d->contextMenuExtraItems == contextMenu)
+    if (d_ptr->contextMenuExtraItems == contextMenuExtras)
         return;
-    d->contextMenuExtraItems = contextMenu;
+    d_ptr->contextMenuExtraItems = contextMenuExtras;
     emit contextMenuExtraItemsChanged();
 }
 
-QQmlComponent *QQuickWebEngineView::contextMenuExtraItems() const
+QQmlComponent *QQuickWebEngineViewExperimental::contextMenuExtraItems() const
 {
-    Q_D(const QQuickWebEngineView);
-    return d->contextMenuExtraItems;
+    return d_ptr->contextMenuExtraItems;
 }
 
 void QQuickWebEngineView::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)

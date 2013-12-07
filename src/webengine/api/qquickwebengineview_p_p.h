@@ -79,8 +79,15 @@ private:
 class Q_WEBENGINE_PRIVATE_EXPORT QQuickWebEngineViewExperimental : public QObject {
     Q_OBJECT
     Q_PROPERTY(QQuickWebEngineViewport *viewport READ viewport)
+    Q_PROPERTY(QQmlComponent *contextMenuExtraItems READ contextMenuExtraItems WRITE setContextMenuExtraItems NOTIFY contextMenuExtraItemsChanged)
+
 public:
     QQuickWebEngineViewport *viewport() const;
+    void setContextMenuExtraItems(QQmlComponent *);
+    QQmlComponent *contextMenuExtraItems() const;
+
+Q_SIGNALS:
+    void contextMenuExtraItemsChanged();
 
 private:
     QQuickWebEngineViewExperimental(QQuickWebEngineViewPrivate* viewPrivate);
@@ -121,10 +128,10 @@ public:
     QExplicitlySharedDataPointer<WebContentsAdapter> adapter;
     QScopedPointer<QQuickWebEngineViewExperimental> e;
     QScopedPointer<QQuickWebEngineViewport> v;
-    QQmlComponent* contextMenuExtraItems;
-    QQmlComponent* menuComponent;
-    QQmlComponent* menuItemComponent;
-    QQmlComponent* menuSeparatorComponent;
+    QQmlComponent *contextMenuExtraItems;
+    QQmlComponent *menuComponent;
+    QQmlComponent *menuItemComponent;
+    QQmlComponent *menuSeparatorComponent;
     QUrl icon;
     int loadProgress;
     bool inspectable;
@@ -132,11 +139,11 @@ public:
 
 private:
     bool ensureComponentLoaded(QQmlComponent *&, const QString &);
-    QQmlContext* creationContextForComponent(QQmlComponent *);
-    QQmlComponent* loadDefaultUIDelegate(const QString &);
+    QQmlContext *creationContextForComponent(QQmlComponent *);
+    QQmlComponent *loadDefaultUIDelegate(const QString &);
     void addMenuItem(QObject *menu, MenuItem *menuItem);
     void addMenuSeparator(QObject *menu);
-    QObject* addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
+    QObject *addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
 
     qreal m_dpiScale;
 
