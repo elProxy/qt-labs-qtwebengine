@@ -362,6 +362,40 @@ bool QQuickWebEngineViewPrivate::contextMenuRequested(const WebEngineContextMenu
     return true;
 }
 
+bool QQuickWebEngineViewPrivate::javascriptDialog(JavascriptDialogType type, const QString &message, const QString &defaultValue, QString *result)
+{
+    Q_UNUSED(message); Q_UNUSED(defaultValue); Q_UNUSED(result);
+    switch (type) {
+    case AlertDialog:
+        return runAlertDialog(message);
+    default:
+            // FIXME: add impl.
+            Q_UNREACHABLE();
+            return false;
+    }
+}
+
+bool QQuickWebEngineViewPrivate::runAlertDialog(const QString &message)
+{
+    Q_Q(QQuickWebEngineView);
+    if (!ensureComponentLoaded(alertDialogComponent, QStringLiteral("AlertDialog.qml")))
+        return false;
+    QQmlContext *context(creationContextForComponent(alertDialogComponent));
+    QObject *dialog = alertDialogComponent->beginCreate(context);
+    if (QQuickItem* item = qobject_cast<QQuickItem*>(dialog))
+        item->setParentItem(q);
+    alertDialogComponent->completeCreate();
+    if (!message.isEmpty()) {
+        QQmlProperty textProp(dialog, QStringLiteral("text"));
+        textProp.write(message);
+    }
+    QQmlProperty titleProp(dialog, QStringLiteral("title"));
+    titleProp.write(QObject::tr("Javascript Alert - %1").arg(q->url().toString()));
+    QMetaObject::invokeMethod(dialog, "open");
+    return true;
+}
+
+
 
 void QQuickWebEngineViewPrivate::titleChanged(const QString &title)
 {
