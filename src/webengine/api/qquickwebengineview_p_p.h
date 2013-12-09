@@ -130,24 +130,13 @@ public:
     QScopedPointer<QQuickWebEngineViewExperimental> e;
     QScopedPointer<QQuickWebEngineViewport> v;
     QQmlComponent *contextMenuExtraItems;
-    QQmlComponent *menuComponent;
-    QQmlComponent *menuItemComponent;
-    QQmlComponent *menuSeparatorComponent;
-    QQmlComponent *alertDialogComponent;
+
     QUrl icon;
     int loadProgress;
     bool inspectable;
     qreal devicePixelRatio;
 
 private:
-    bool ensureComponentLoaded(QQmlComponent *&, const QString &);
-    QQmlContext *creationContextForComponent(QQmlComponent *);
-    QQmlComponent *loadDefaultUIDelegate(const QString &);
-    void addMenuItem(QObject *menu, MenuItem *menuItem);
-    void addMenuSeparator(QObject *menu);
-    QObject *addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
-    bool runAlertDialog(const QString &);
-
     qreal m_dpiScale;
 
 };
