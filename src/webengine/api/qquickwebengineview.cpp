@@ -305,7 +305,7 @@ QQmlComponent *QQuickWebEngineViewPrivate::loadDefaultUIDelegate(const QString &
         if (fi.exists())
             absolutePath = fi.absoluteFilePath();
     }
-
+    // FIXME: handle async loading
     return new QQmlComponent(engine, QUrl(absolutePath), QQmlComponent::PreferSynchronous, q);
 }
 
@@ -346,6 +346,7 @@ bool QQuickWebEngineViewPrivate::contextMenuRequested(const WebEngineContextMenu
         addMenuItem(menu, item);
     }
 
+    // FIXME: expose the context menu data as an attached property to make this more useful
     if (contextMenuExtraItems) {
         addMenuSeparator(menu);
         if (QObject* menuExtras = contextMenuExtraItems->create(creationContextForComponent(contextMenuExtraItems))) {
