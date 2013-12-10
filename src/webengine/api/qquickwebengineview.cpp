@@ -42,13 +42,10 @@
 #include "qquickwebengineview_p.h"
 #include "qquickwebengineview_p_p.h"
 
-#include "web_contents_adapter.h"
 #include "render_widget_host_view_qt_delegate_quick.h"
+#include "ui_delegates_manager.h"
+#include "web_contents_adapter.h"
 
-#include <QAbstractListModel>
-#include <QClipboard>
-#include <QFileInfo>
-#include <QGuiApplication>
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -57,6 +54,7 @@
 #include <QStringBuilder>
 #include <QUrl>
 
+#include <private/qqmlmetatype_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -100,6 +98,14 @@ QQuickWebEngineViewport *QQuickWebEngineViewPrivate::viewport() const
     return v.data();
 }
 
+UIDelegatesManager *QQuickWebEngineViewPrivate::ui()
+{
+    Q_Q(QQuickWebEngineView);
+    if (m_uIDelegatesManager.isNull())
+        m_uIDelegatesManager.reset(new UIDelegatesManager(q));
+    return m_uIDelegatesManager.data();
+}
+
 RenderWidgetHostViewQtDelegate *QQuickWebEngineViewPrivate::CreateRenderWidgetHostViewQtDelegate(RenderWidgetHostViewQtDelegateClient *client, RenderingMode mode)
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 2, 0))
@@ -113,43 +119,43 @@ bool QQuickWebEngineViewPrivate::contextMenuRequested(const WebEngineContextMenu
 {
     Q_Q(QQuickWebEngineView);
 
-    QObject *menu = addMenu(0, QString(), data.pos);
+    QObject *menu = ui()->addMenu(0, QString(), data.pos);
     if (!menu)
         return false;
 
     // Populate our menu
-    MenuItem *item = 0;
+    MenuItemData *item = 0;
 
     if (data.selectedText.isEmpty()) {
-        item = new MenuItem(QObject::tr("Back"), QStringLiteral("go-previous"));
-        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::goBack);
+        item = new MenuItemData(QObject::tr("Back"), QStringLiteral("go-previous"));
+        QObject::connect(item, &MenuItemData::triggered, q, &QQuickWebEngineView::goBack);
         item->setEnabled(q->canGoBack());
-        addMenuItem(menu, item);
+        ui()->addMenuItem(menu, item);
 
-        item = new MenuItem(QObject::tr("Forward"), QStringLiteral("go-next"));
-        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::goForward);
+        item = new MenuItemData(QObject::tr("Forward"), QStringLiteral("go-next"));
+        QObject::connect(item, &MenuItemData::triggered, q, &QQuickWebEngineView::goForward);
         item->setEnabled(q->canGoForward());
-        addMenuItem(menu, item);
+        ui()->addMenuItem(menu, item);
 
-        item = new MenuItem(QObject::tr("Reload"), QStringLiteral("view-refresh"));
-        QObject::connect(item, &MenuItem::triggered, q, &QQuickWebEngineView::reload);
-        addMenuItem(menu, item);
+        item = new MenuItemData(QObject::tr("Reload"), QStringLiteral("view-refresh"));
+        QObject::connect(item, &MenuItemData::triggered, q, &QQuickWebEngineView::reload);
+        ui()->addMenuItem(menu, item);
     } else {
         item = new CopyMenuItem(QObject::tr("Copy..."), data.selectedText);
-        addMenuItem(menu, item);
+        ui()-> addMenuItem(menu, item);
     }
 
     if (!data.linkText.isEmpty() && data.linkUrl.isValid()) {
         item = new NavigateMenuItem(QObject::tr("Navigate to..."), adapter, data.linkUrl);
-        addMenuItem(menu, item);
+        ui()->addMenuItem(menu, item);
         item = new CopyMenuItem(QObject::tr("Copy link adress"), data.linkUrl.toString());
-        addMenuItem(menu, item);
+        ui()->addMenuItem(menu, item);
     }
 
     // FIXME: expose the context menu data as an attached property to make this more useful
     if (contextMenuExtraItems) {
-        addMenuSeparator(menu);
-        if (QObject* menuExtras = contextMenuExtraItems->create(creationContextForComponent(contextMenuExtraItems))) {
+        ui()->addMenuSeparator(menu);
+        if (QObject* menuExtras = contextMenuExtraItems->create(ui()->creationContextForComponent(contextMenuExtraItems))) {
             menuExtras->setParent(menu);
             QQmlListReference entries(menu, QQmlMetaType::defaultProperty(menu).name(), qmlEngine(q));
             if (entries.isValid())
@@ -167,35 +173,13 @@ bool QQuickWebEngineViewPrivate::javascriptDialog(JavascriptDialogType type, con
     Q_UNUSED(message); Q_UNUSED(defaultValue); Q_UNUSED(result);
     switch (type) {
     case AlertDialog:
-        return runAlertDialog(message);
+        return ui()->runAlertDialog(message);
     default:
             // FIXME: add impl.
             Q_UNREACHABLE();
             return false;
     }
 }
-
-bool QQuickWebEngineViewPrivate::runAlertDialog(const QString &message)
-{
-    Q_Q(QQuickWebEngineView);
-    if (!ensureComponentLoaded(alertDialogComponent, QStringLiteral("AlertDialog.qml")))
-        return false;
-    QQmlContext *context(creationContextForComponent(alertDialogComponent));
-    QObject *dialog = alertDialogComponent->beginCreate(context);
-    if (QQuickItem* item = qobject_cast<QQuickItem*>(dialog))
-        item->setParentItem(q);
-    alertDialogComponent->completeCreate();
-    if (!message.isEmpty()) {
-        QQmlProperty textProp(dialog, QStringLiteral("text"));
-        textProp.write(message);
-    }
-    QQmlProperty titleProp(dialog, QStringLiteral("title"));
-    titleProp.write(QObject::tr("Javascript Alert - %1").arg(q->url().toString()));
-    QMetaObject::invokeMethod(dialog, "open");
-    return true;
-}
-
-
 
 void QQuickWebEngineViewPrivate::titleChanged(const QString &title)
 {

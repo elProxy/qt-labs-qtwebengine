@@ -52,7 +52,7 @@
 #include <QtQuick/private/qquickitem_p.h>
 
 class WebContentsAdapter;
-class MenuItem;
+class UIDelegatesManager;
 
 QT_BEGIN_NAMESPACE
 class QQuickWebEngineView;
@@ -107,6 +107,7 @@ public:
 
     QQuickWebEngineViewExperimental *experimental() const;
     QQuickWebEngineViewport *viewport() const;
+    UIDelegatesManager *ui();
 
     virtual RenderWidgetHostViewQtDelegate* CreateRenderWidgetHostViewQtDelegate(RenderWidgetHostViewQtDelegateClient *client, RenderingMode) Q_DECL_OVERRIDE;
     virtual void titleChanged(const QString&) Q_DECL_OVERRIDE;
@@ -137,6 +138,7 @@ public:
     qreal devicePixelRatio;
 
 private:
+    QScopedPointer<UIDelegatesManager> m_uIDelegatesManager;
     qreal m_dpiScale;
 
 };
