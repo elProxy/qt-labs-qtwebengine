@@ -44,7 +44,6 @@
 
 #include <QAbstractListModel>
 #include <QClipboard>
-#include <QDebug>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QQmlContext>
@@ -120,7 +119,6 @@ bool UIDelegatesManager::ensureComponentLoaded(ComponentType type)
     }
 
 #ifndef UI_DELEGATES_DEBUG
-    qDebug() << fileNameForComponent(type);
     if (!(*component).isNull())
         return true;
 #endif
@@ -146,30 +144,28 @@ QQmlContext *UIDelegatesManager::creationContextForComponent(QQmlComponent *comp
     return baseContext;
 }
 
-static void initFromMenuItem(QObject* qmlItem, MenuItemData* item) {
-    Q_ASSERT(item);
-    QQmlProperty prop(qmlItem, QStringLiteral("text"));
-    prop.write(item->text());
-    prop = QQmlProperty(qmlItem, QStringLiteral("iconName"));
-    prop.write(item->iconName());
-    prop = QQmlProperty(qmlItem, QStringLiteral("enabled"));
-    prop.write(item->enabled());
-    prop = QQmlProperty(qmlItem, QStringLiteral("onTriggered"));
-    if (!prop.isSignalProperty())
-        qWarning("MenuItem is missing onTriggered signal property\n");
-    QObject::connect(qmlItem, prop.method(), item, QMetaMethod::fromSignal(&MenuItemData::triggered));
-
-}
-
-
-void UIDelegatesManager::addMenuItem(QObject *menu, MenuItemData *menuItem)
+void UIDelegatesManager::addMenuItem(QObject *menu, MenuItemData *itemData)
 {
-    if (!ensureComponentLoaded(MenuItem))
+    Q_ASSERT(itemData);
+    QObject *it = 0;
+    if (ensureComponentLoaded(MenuItem))
+        it = menuItemComponent->create(creationContextForComponent(menuItemComponent.data()));
+    if (!it) {
+        itemData->deleteLater();
         return;
+    }
+    QQmlProperty prop(it, QStringLiteral("text"));
+    prop.write(itemData->text());
+    prop = QQmlProperty(it, QStringLiteral("iconName"));
+    prop.write(itemData->iconName());
+    prop = QQmlProperty(it, QStringLiteral("enabled"));
+    prop.write(itemData->enabled());
+    prop = QQmlProperty(it, QStringLiteral("onTriggered"));
+    if (!prop.isSignalProperty())
+        qWarning("MenuItem component %s is missing onTriggered signal property\n", qPrintable(menuItemComponent->url().toString()));
+    QObject::connect(it, prop.method(), itemData, QMetaMethod::fromSignal(&MenuItemData::triggered));
 
-    QObject* it = menuItemComponent->create(creationContextForComponent(menuItemComponent.data()));
-    initFromMenuItem(it, menuItem);
-    menuItem->setParent(it); // for cleanup purposes
+    itemData->setParent(it); // for cleanup purposes
 
     it->setParent(menu);
 
@@ -184,7 +180,7 @@ void UIDelegatesManager::addMenuSeparator(QObject *menu)
         return;
 
     QQmlContext *itemContext = creationContextForComponent(menuSeparatorComponent.data());
-    QObject* sep = menuSeparatorComponent->create(itemContext);
+    QObject *sep = menuSeparatorComponent->create(itemContext);
     sep->setParent(menu);
 
     QQmlListReference entries(menu, QQmlMetaType::defaultProperty(menu).name(), qmlEngine(m_view));
@@ -230,7 +226,7 @@ QObject *UIDelegatesManager::addMenu(QObject *parentMenu, const QString &title, 
 QQmlComponent *UIDelegatesManager::loadDefaultUIDelegate(const QString &fileName)
 {
 #ifdef UI_DELEGATES_DEBUG
-    qDebug() << fileName;
+    fprintf(stderr, "%s: %s\n", Q_FUNC_INFO, qPrintable(fileName));
 #endif
     QQmlEngine* engine = qmlEngine(m_view);
     if (!engine)
@@ -245,9 +241,8 @@ QQmlComponent *UIDelegatesManager::loadDefaultUIDelegate(const QString &fileName
     return new QQmlComponent(engine, QUrl(absolutePath), QQmlComponent::PreferSynchronous, m_view);
 }
 
-bool UIDelegatesManager::runAlertDialog(const QString &message)
+bool UIDelegatesManager::showAlertDialog(const QString &message)
 {
-    qDebug() << Q_FUNC_INFO << message << fileNameForComponent(AlertDialog);
     if (!ensureComponentLoaded(AlertDialog))
         return false;
     QQmlContext *context(creationContextForComponent(alertDialogComponent.data()));
@@ -262,5 +257,6 @@ bool UIDelegatesManager::runAlertDialog(const QString &message)
     QQmlProperty titleProp(dialog, QStringLiteral("title"));
     titleProp.write(QObject::tr("Javascript Alert - %1").arg(m_view->url().toString()));
     QMetaObject::invokeMethod(dialog, "open");
+
     return true;
 }

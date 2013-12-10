@@ -124,15 +124,16 @@ public:
 
     UIDelegatesManager(QQuickWebEngineView *);
 
-    bool ensureComponentLoaded(ComponentType);
-    QQmlContext *creationContextForComponent(QQmlComponent *);
-    QQmlComponent *loadDefaultUIDelegate(const QString &);
     void addMenuItem(QObject *menu, MenuItemData *menuItem);
     void addMenuSeparator(QObject *menu);
     QObject *addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
-    bool runAlertDialog(const QString &);
+    QQmlContext *creationContextForComponent(QQmlComponent *);
+    bool showAlertDialog(const QString &);
 
 private:
+    bool ensureComponentLoaded(ComponentType);
+    QQmlComponent *loadDefaultUIDelegate(const QString &);
+
     QQuickWebEngineView *m_view;
 
     FOR_EACH_COMPONENT_TYPE(MEMBER_DECLARATION, SEMICOLON_SEPARATOR)

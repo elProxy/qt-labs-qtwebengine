@@ -173,7 +173,7 @@ bool QQuickWebEngineViewPrivate::javascriptDialog(JavascriptDialogType type, con
     Q_UNUSED(message); Q_UNUSED(defaultValue); Q_UNUSED(result);
     switch (type) {
     case AlertDialog:
-        return ui()->runAlertDialog(message);
+        return ui()->showAlertDialog(message);
     default:
             // FIXME: add impl.
             Q_UNREACHABLE();
