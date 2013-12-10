@@ -45,6 +45,7 @@
 #include "content/public/common/javascript_message_type.h"
 
 #include "qglobal.h"
+#include <QString>
 
 namespace content {
 class WebContents;
@@ -64,6 +65,8 @@ public:
     virtual bool HandleJavaScriptDialog(content::WebContents *, bool accept, const base::string16 *promptOverride) Q_DECL_OVERRIDE;
     virtual void CancelActiveAndPendingDialogs(content::WebContents *) Q_DECL_OVERRIDE {}
     virtual void WebContentsDestroyed(content::WebContents *) Q_DECL_OVERRIDE {}
+
+    void dialogDone(content::WebContents*, bool accepted, const QString & = QString());
 
 };
 

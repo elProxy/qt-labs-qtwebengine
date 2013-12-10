@@ -128,7 +128,7 @@ public:
     void addMenuSeparator(QObject *menu);
     QObject *addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
     QQmlContext *creationContextForComponent(QQmlComponent *);
-    bool showAlertDialog(const QString &);
+    bool showAlertDialog(const QString &, QExplicitlySharedDataPointer<WebContentsAdapter>);
 
 private:
     bool ensureComponentLoaded(ComponentType);

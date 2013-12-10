@@ -144,6 +144,10 @@ QQmlContext *UIDelegatesManager::creationContextForComponent(QQmlComponent *comp
     return baseContext;
 }
 
+#define CHECK_QML_SIGNAL_PROPERTY(prop, type, location) \
+    if (!prop.isSignalProperty()) \
+        qWarning(#type "component (Loaded from %s) is missing %s signal property.\n", qPrintable(location.toString()), qPrintable(prop.name()));
+
 void UIDelegatesManager::addMenuItem(QObject *menu, MenuItemData *itemData)
 {
     Q_ASSERT(itemData);
@@ -161,8 +165,7 @@ void UIDelegatesManager::addMenuItem(QObject *menu, MenuItemData *itemData)
     prop = QQmlProperty(it, QStringLiteral("enabled"));
     prop.write(itemData->enabled());
     prop = QQmlProperty(it, QStringLiteral("onTriggered"));
-    if (!prop.isSignalProperty())
-        qWarning("MenuItem component %s is missing onTriggered signal property\n", qPrintable(menuItemComponent->url().toString()));
+    CHECK_QML_SIGNAL_PROPERTY(prop, "MenuItem", menuItemComponent->url());
     QObject::connect(it, prop.method(), itemData, QMetaMethod::fromSignal(&MenuItemData::triggered));
 
     itemData->setParent(it); // for cleanup purposes
@@ -241,7 +244,29 @@ QQmlComponent *UIDelegatesManager::loadDefaultUIDelegate(const QString &fileName
     return new QQmlComponent(engine, QUrl(absolutePath), QQmlComponent::PreferSynchronous, m_view);
 }
 
-bool UIDelegatesManager::showAlertDialog(const QString &message)
+class DialogNotifier : public QObject {
+    Q_OBJECT
+public:
+    DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter);
+
+public Q_SLOTS:
+    void accept();
+    void reject();
+
+private:
+    QExplicitlySharedDataPointer<WebContentsAdapter> m_adapter;
+};
+
+DialogNotifier::DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter)
+    : m_adapter(adapter)
+{
+}
+
+
+#include "ui_delegates_manager.moc"
+
+
+bool UIDelegatesManager::showAlertDialog(const QString &message, QExplicitlySharedDataPointer<WebContentsAdapter> adapter)
 {
     if (!ensureComponentLoaded(AlertDialog))
         return false;
@@ -257,6 +282,12 @@ bool UIDelegatesManager::showAlertDialog(const QString &message)
     QQmlProperty titleProp(dialog, QStringLiteral("title"));
     titleProp.write(QObject::tr("Javascript Alert - %1").arg(m_view->url().toString()));
     QMetaObject::invokeMethod(dialog, "open");
+    QQmlProperty acceptSignal(dialog, QStringLiteral("onAccepted"));
+    QQmlProperty rejectSignal(dialog, QStringLiteral("onRejected"));
+    CHECK_QML_SIGNAL_PROPERTY(acceptSignal, "AlertDialog", alertDialogComponent->url());
+    CHECK_QML_SIGNAL_PROPERTY(rejectSignal, "AlertDialog", alertDialogComponent->url());
+    QObject::connect(dialog, )
+
 
     return true;
 }

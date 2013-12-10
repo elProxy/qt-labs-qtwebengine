@@ -76,3 +76,9 @@ bool JavaScriptDialogManagerQt::HandleJavaScriptDialog(content::WebContents *, b
     // FIXME: We might need to keep a queue of modal dialogs in there and unqueue them...
     return false;
 }
+
+
+void dialogDone(content::WebContents *contents, bool accepted, const QString &promptInput)
+{
+    callback.Run(res, toString16(promptInput));
+}
