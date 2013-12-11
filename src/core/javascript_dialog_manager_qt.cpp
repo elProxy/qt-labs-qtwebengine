@@ -47,6 +47,60 @@
 
 #include "base/memory/singleton.h"
 
+struct JavaScriptDialogControllerPrivate {
+    WebContentsAdapterClient::JavascriptDialogType type;
+    QString message;
+    QString defaultPrompt;
+    QString userInput;
+    content::JavaScriptDialogManager::DialogClosedCallback callback;
+    content::WebContents *contents;
+};
+
+
+QString JavaScriptDialogController::message() const
+{
+    return d->message;
+}
+
+QString JavaScriptDialogController::defaultPrompt() const
+{
+    return d->defaultPrompt;
+}
+
+WebContentsAdapterClient::JavascriptDialogType JavaScriptDialogController::type()
+{
+    return d->type;
+}
+
+void JavaScriptDialogController::textProvided(const QString &text)
+{
+    d->userInput = text;
+}
+
+void JavaScriptDialogController::accept()
+{
+    dialogFinished(true, toString16(d->userInput));
+}
+
+void JavaScriptDialogController::reject()
+{
+    dialogFinished(false, toString16(d->defaultPrompt));
+}
+
+void JavaScriptDialogController::dialogFinished(bool accepted, const base::string16 &promptValue)
+{
+    // clear the queue first as this could result in the engine asking us to run another dialog.
+    JavaScriptDialogManagerQt::GetInstance()->dialogDoneForContents(d->contents);
+
+    d->callback.Run(accepted, promptValue);
+}
+
+JavaScriptDialogController::JavaScriptDialogController(JavaScriptDialogControllerPrivate *dd)
+{
+    Q_ASSERT(dd);
+    d.reset(dd);
+}
+
 Q_STATIC_ASSERT_X(static_cast<int>(content::JAVASCRIPT_MESSAGE_TYPE_PROMPT) == static_cast<int>(WebContentsAdapterClient::PromptDialog), "These enums should be in sync.");
 
 JavaScriptDialogManagerQt *JavaScriptDialogManagerQt::GetInstance()
@@ -66,67 +120,38 @@ void JavaScriptDialogManagerQt::RunJavaScriptDialog(content::WebContents *webCon
     }
 
     WebContentsAdapterClient::JavascriptDialogType dialogType = static_cast<WebContentsAdapterClient::JavascriptDialogType>(javascriptMessageType);
-    JavaScriptDialogData *dialog = new JavaScriptDialogData;
-    dialog->type = dialogType;
-    dialog->message = toQt(messageText).toHtmlEscaped();
-    dialog->defaultPrompt = toQt(defaultPromptText).toHtmlEscaped();
-    dialog->callback = callback;
+    JavaScriptDialogControllerPrivate *dialogData = new JavaScriptDialogControllerPrivate;
+    dialogData->type = dialogType;
+    dialogData->message = toQt(messageText).toHtmlEscaped();
+    dialogData->defaultPrompt = toQt(defaultPromptText).toHtmlEscaped();
+    dialogData->callback = callback;
+    dialogData->contents = webContents;
 
-    if (!m_queueMap.contains(webContents))
-        m_queueMap.insert(webContents, new JavaScriptDialogQueue(webContents));
-    JavaScriptDialogQueue *queue = m_queueMap.value(webContents);
-    queue->enqueueDialog(dialog);
-    if (!queue->hasActiveDialog())
-        queue->showNextDialog();
+    JavaScriptDialogController *dialog = new JavaScriptDialogController(dialogData);
+
+    // We shouldn't get new dialogs for a given WebContents until we gave back a result.
+    Q_ASSERT(!m_activeDialogs.contains(webContents));
+    m_activeDialogs.insert(webContents, dialog);
+
+    // FIXME: now switch to this:
+    // client->jsDialog(dialog);
 }
 
-bool JavaScriptDialogManagerQt::HandleJavaScriptDialog(content::WebContents *, bool accept, const base::string16 *promptOverride)
+bool JavaScriptDialogManagerQt::HandleJavaScriptDialog(content::WebContents *contents, bool accept, const base::string16 *promptOverride)
 {
-    // FIXME: We might need to keep a queue of modal dialogs in there and unqueue them...
-    return false;
+    if (!m_activeDialogs.contains(contents))
+        return false;
+    JavaScriptDialogController *dialog = m_activeDialogs.value(contents);
+    /*emit*/ dialog->dialogCloseRequested();
+    dialog->dialogFinished(accept, promptOverride ? *promptOverride : base::string16());
+    return true;
 }
 
 
-void JavaScriptDialogManagerQt::dialogDone(content::WebContents *contents, bool accepted, const QString &promptInput)
+void dialogDoneForContents(content::WebContents *contents)
 {
-    Q_ASSERT(m_queueMap.contains(contents));
-    JavaScriptDialogQueue *queue = m_queueMap.value(contents);
-    queue->activeDialogFinished(accepted, promptInput);
-}
-
-
-JavaScriptDialogQueue::JavaScriptDialogQueue(content::WebContents *contents)
-    : m_webContents(contents)
-    , m_activeDialog(0)
-{
-}
-
-JavaScriptDialogQueue::~JavaScriptDialogQueue()
-{
-    qDeleteAll(m_pendingDialogs);
-}
-
-void JavaScriptDialogQueue::enqueueDialog(JavaScriptDialogData *data)
-{
-    m_pendingDialogs.enqueue(data);
-}
-
-void JavaScriptDialogQueue::showNextDialog()
-{
-    if (!m_pendingDialogs.size())
+    if (!m_activeDialogs.contains(contents))
         return;
-    WebContentsAdapterClient *client = WebContentsViewQt::from(m_webContents->GetView())->client();
-    if (!client)
-        return;
-    m_activeDialog = m_pendingDialogs.takeFirst();
-    client->javascriptDialog(m_activeDialog->type, m_activeDialog->message, m_activeDialog->defaultPrompt);
-}
-
-void JavaScriptDialogQueue::activeDialogFinished(bool result, const QString &promptValue)
-{
-    if (!m_activeDialog)
-        return;
-    m_activeDialog->callback.Run(result, toString16(promptValue));
-    delete m_activeDialog;
-    m_activeDialog = 0;
+    m_activeDialogs.value(contents)->deleteLater();
+    m_activeDialogs.remove(contents);
 }

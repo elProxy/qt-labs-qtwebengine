@@ -48,36 +48,34 @@
 
 #include "qglobal.h"
 #include <QMap>
-#include <QPair>
-#include <QQueue>
-#include <QString>
 
 namespace content {
 class WebContents;
 }
 
-struct JavaScriptDialogData {
-    WebContentsAdapterClient::JavascriptDialogType type;
-    QString message;
-    QString defaultPrompt;
-    content::JavaScriptDialogManager::DialogClosedCallback callback;
-};
+struct JavaScriptDialogControllerPrivate;
 
-class JavaScriptDialogQueue {
-
+class JavaScriptDialogController : public QObject {
+    Q_OBJECT
 public:
-    JavaScriptDialogQueue(content::WebContents *);
-    ~JavaScriptDialogQueue();
-    bool hasActiveDialog() const { return m_activeDialog; }
-    void enqueueDialog(JavaScriptDialogData *);
-    void showNextDialog();
-    void activeDialogFinished(bool result, const QString &promptValue);
+    QString message() const;
+    QString defaultPrompt() const;
+    WebContentsAdapterClient::JavascriptDialogType type();
+
+public Q_SLOTS:
+    void textProvided(const QString &text);
+    void accept();
+    void reject();
+
+Q_SIGNALS:
+    void dialogCloseRequested();
 
 private:
-    content::WebContents *m_webContents;
-    JavaScriptDialogData *m_activeDialog;
-    QQueue<JavaScriptDialogData *> m_pendingDialogs;
+    JavaScriptDialogController(JavaScriptDialogControllerPrivate *);
+    void dialogFinished(bool accepted, const base::string16 &);
 
+    QScopedPointer<JavaScriptDialogControllerPrivate> d;
+    friend class JavaScriptDialogManagerQt;
 };
 
 
@@ -94,13 +92,13 @@ public:
                                          const content::JavaScriptDialogManager::DialogClosedCallback &callback) Q_DECL_OVERRIDE { Q_UNUSED(messageText); Q_UNUSED(isReload); Q_UNUSED(callback); }
     virtual bool HandleJavaScriptDialog(content::WebContents *, bool accept, const base::string16 *promptOverride) Q_DECL_OVERRIDE;
     // FIXME: handle those as well
-    virtual void CancelActiveAndPendingDialogs(content::WebContents *) Q_DECL_OVERRIDE {}
-    virtual void WebContentsDestroyed(content::WebContents *) Q_DECL_OVERRIDE {}
+    virtual void CancelActiveAndPendingDialogs(content::WebContents *contents) Q_DECL_OVERRIDE { dialogDoneForContents(contents); }
+    virtual void WebContentsDestroyed(content::WebContents *contents) Q_DECL_OVERRIDE { dialogDoneForContents(contents); }
 
-    void dialogDone(content::WebContents*, bool accepted, const QString & = QString());
+    void dialogDoneForContents(content::WebContents *);
 
 private:
-    QMap<content::WebContents*, JavaScriptDialogQueue*> m_queueMap;
+    QMap<content::WebContents *, JavaScriptDialogController *> m_activeDialogs;
 
 };
 
