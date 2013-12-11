@@ -324,20 +324,25 @@ bool QWebEnginePagePrivate::contextMenuRequested(const WebEngineContextMenuData 
     return true;
 }
 
-bool QWebEnginePagePrivate::javascriptDialog(JavascriptDialogType type, const QString &message, const QString &defaultValue, QString *result)
+void QWebEnginePagePrivate::javascriptDialog(JavascriptDialogType type, const QString &message, const QString &defaultValue)
 {
     Q_Q(QWebEnginePage);
+    bool accepted;
+    QString promptResult;
     switch (type) {
     case AlertDialog:
         q->javaScriptAlert(0, message);
-        return true;
+        break;
     case ConfirmDialog:
-        return q->javaScriptConfirm(0, message);
+        accepted = q->javaScriptConfirm(0, message);
+        break;
     case PromptDialog:
-        return q->javaScriptPrompt(0, message, defaultValue, result);
+        accepted = q->javaScriptPrompt(0, message, defaultValue, &promptResult);
+        break;
+    default:
+        Q_UNREACHABLE();
     }
-    Q_UNREACHABLE();
-    return false;
+    adapter->javaScriptDialogDone(accepted, promptResult);
 }
 
 namespace {

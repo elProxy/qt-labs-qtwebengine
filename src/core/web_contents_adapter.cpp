@@ -362,9 +362,10 @@ void WebContentsAdapter::runJavaScript(const QString &javaScript, const QString 
     }
 }
 
-void WebContentsAdapter::javaScriptDialogDone(bool accept, const QString &)
+void WebContentsAdapter::javaScriptDialogDone(bool accept, const QString &promptValue)
 {
-    Jav
+    Q_D(WebContentsAdapter);
+    JavaScriptDialogManagerQt::GetInstance()->dialogDone(d->webContents.get(), accept, promptValue);
 }
 
 void WebContentsAdapter::dpiScaleChanged()

@@ -247,19 +247,31 @@ QQmlComponent *UIDelegatesManager::loadDefaultUIDelegate(const QString &fileName
 class DialogNotifier : public QObject {
     Q_OBJECT
 public:
-    DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter);
+    DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter, QObject *parent = 0);
 
 public Q_SLOTS:
     void accept();
     void reject();
 
 private:
+    QString promptText;
     QExplicitlySharedDataPointer<WebContentsAdapter> m_adapter;
 };
 
-DialogNotifier::DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter)
-    : m_adapter(adapter)
+DialogNotifier::DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter, QObject *parent)
+    : QObject(parent)
+    , m_adapter(adapter)
 {
+}
+
+void DialogNotifier::accept()
+{
+    m_adapter->javaScriptDialogDone(true, promptText);
+}
+
+void DialogNotifier::reject()
+{
+    m_adapter->javaScriptDialogDone(false, promptText);
 }
 
 
@@ -286,8 +298,12 @@ bool UIDelegatesManager::showAlertDialog(const QString &message, QExplicitlyShar
     QQmlProperty rejectSignal(dialog, QStringLiteral("onRejected"));
     CHECK_QML_SIGNAL_PROPERTY(acceptSignal, "AlertDialog", alertDialogComponent->url());
     CHECK_QML_SIGNAL_PROPERTY(rejectSignal, "AlertDialog", alertDialogComponent->url());
-    QObject::connect(dialog, )
 
+    DialogNotifier *notifier = new DialogNotifier(adapter, dialog);
+    static int acceptIndex = notifier->metaObject()->indexOfSlot("accept()");
+    QObject::connect(dialog, acceptSignal.method(), notifier, notifier->metaObject()->method(acceptIndex));
+    static int rejectIndex = notifier->metaObject()->indexOfSlot("reject()");
+    QObject::connect(dialog, rejectSignal.method(), notifier, notifier->metaObject()->method(rejectIndex));
 
     return true;
 }
