@@ -43,6 +43,7 @@
 #define UI_DELEGATES_MANAGER_H
 
 #include "qglobal.h"
+#include "javascript_dialog_controller.h"
 #include "web_contents_adapter.h"
 
 #include <QExplicitlySharedDataPointer>
@@ -64,6 +65,7 @@
 #define MEMBER_DECLARATION(TYPE, COMPONENT) \
     QScopedPointer<QQmlComponent> COMPONENT##Component
 
+class JavaScriptDialogController;
 class QQuickWebEngineView;
 
 QT_FORWARD_DECLARE_CLASS(QObject)

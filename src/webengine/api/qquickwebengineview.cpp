@@ -168,17 +168,9 @@ bool QQuickWebEngineViewPrivate::contextMenuRequested(const WebEngineContextMenu
     return true;
 }
 
-void QQuickWebEngineViewPrivate::javascriptDialog(JavascriptDialogType type, const QString &message, const QString &defaultValue)
+void QQuickWebEngineViewPrivate::javascriptDialog(JavaScriptDialogController *dialog)
 {
-     Q_UNUSED(defaultValue);
-    switch (type) {
-    case AlertDialog:
-        ui()->showAlertDialog(message, adapter);
-        break;
-    default:
-            // FIXME: add impl.
-            Q_UNREACHABLE();
-    }
+    ui()->showDialog(dialog);
 }
 
 void QQuickWebEngineViewPrivate::titleChanged(const QString &title)

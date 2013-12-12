@@ -44,40 +44,13 @@
 #include "content/public/browser/javascript_dialog_manager.h"
 #include "content/public/common/javascript_message_type.h"
 
-#include "web_contents_adapter_client.h"
-
 #include "qglobal.h"
 #include <QMap>
 
+class JavaScriptDialogController;
 namespace content {
 class WebContents;
 }
-
-struct JavaScriptDialogControllerPrivate;
-
-class JavaScriptDialogController : public QObject {
-    Q_OBJECT
-public:
-    QString message() const;
-    QString defaultPrompt() const;
-    WebContentsAdapterClient::JavascriptDialogType type();
-
-public Q_SLOTS:
-    void textProvided(const QString &text);
-    void accept();
-    void reject();
-
-Q_SIGNALS:
-    void dialogCloseRequested();
-
-private:
-    JavaScriptDialogController(JavaScriptDialogControllerPrivate *);
-    void dialogFinished(bool accepted, const base::string16 &);
-
-    QScopedPointer<JavaScriptDialogControllerPrivate> d;
-    friend class JavaScriptDialogManagerQt;
-};
-
 
 class JavaScriptDialogManagerQt : public content::JavaScriptDialogManager
 {
@@ -92,10 +65,10 @@ public:
                                          const content::JavaScriptDialogManager::DialogClosedCallback &callback) Q_DECL_OVERRIDE { Q_UNUSED(messageText); Q_UNUSED(isReload); Q_UNUSED(callback); }
     virtual bool HandleJavaScriptDialog(content::WebContents *, bool accept, const base::string16 *promptOverride) Q_DECL_OVERRIDE;
     // FIXME: handle those as well
-    virtual void CancelActiveAndPendingDialogs(content::WebContents *contents) Q_DECL_OVERRIDE { dialogDoneForContents(contents); }
-    virtual void WebContentsDestroyed(content::WebContents *contents) Q_DECL_OVERRIDE { dialogDoneForContents(contents); }
+    virtual void CancelActiveAndPendingDialogs(content::WebContents *contents) Q_DECL_OVERRIDE { removeDialogForContents(contents); }
+    virtual void WebContentsDestroyed(content::WebContents *contents) Q_DECL_OVERRIDE { removeDialogForContents(contents); }
 
-    void dialogDoneForContents(content::WebContents *);
+    void removeDialogForContents(content::WebContents *);
 
 private:
     QMap<content::WebContents *, JavaScriptDialogController *> m_activeDialogs;
