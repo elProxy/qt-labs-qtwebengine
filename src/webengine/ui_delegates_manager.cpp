@@ -55,7 +55,7 @@
 #include <private/qqmlmetatype_p.h>
 
 // Uncomment for QML debugging
-//#define UI_DELEGATES_DEBUG
+#define UI_DELEGATES_DEBUG
 
 #define NO_SEPARATOR
 #define FILE_NAME_CASE_STATEMENT(TYPE, COMPONENT) \
@@ -146,9 +146,9 @@ QQmlContext *UIDelegatesManager::creationContextForComponent(QQmlComponent *comp
     return baseContext;
 }
 
-#define CHECK_QML_SIGNAL_PROPERTY(prop, type, location) \
+#define CHECK_QML_SIGNAL_PROPERTY(prop, location) \
     if (!prop.isSignalProperty()) \
-        qWarning(#type "component (Loaded from %s) is missing %s signal property.\n", qPrintable(location.toString()), qPrintable(prop.name()));
+        qWarning("%s is missing %s signal property.\n", qPrintable(location.toString()), qPrintable(prop.name()));
 
 void UIDelegatesManager::addMenuItem(QObject *menu, MenuItemData *itemData)
 {
@@ -167,7 +167,7 @@ void UIDelegatesManager::addMenuItem(QObject *menu, MenuItemData *itemData)
     prop = QQmlProperty(it, QStringLiteral("enabled"));
     prop.write(itemData->enabled());
     prop = QQmlProperty(it, QStringLiteral("onTriggered"));
-    CHECK_QML_SIGNAL_PROPERTY(prop, "MenuItem", menuItemComponent->url());
+    CHECK_QML_SIGNAL_PROPERTY(prop, menuItemComponent->url());
     QObject::connect(it, prop.method(), itemData, QMetaMethod::fromSignal(&MenuItemData::triggered));
 
     itemData->setParent(it); // for cleanup purposes
@@ -248,31 +248,73 @@ QQmlComponent *UIDelegatesManager::loadDefaultUIDelegate(const QString &fileName
 
 #include "ui_delegates_manager.moc"
 
+#define ASSIGN_DIALOG_COMPONENT_DATA_CASE_STATEMENT(TYPE, COMPONENT) \
+    case TYPE:\
+        dialogComponent = COMPONENT##Component.data(); \
+        break;
+
 
 bool UIDelegatesManager::showDialog(JavaScriptDialogController *dialogController)
 {
-    if (!ensureComponentLoaded(AlertDialog))
+    ComponentType dialogComponentType = Invalid;
+    QString title;
+    switch(dialogController->type()) {
+    case WebContentsAdapterClient::AlertDialog:
+        dialogComponentType = AlertDialog;
+        title = QObject::tr("Javascript Alert - %1");
+        break;
+    case WebContentsAdapterClient::ConfirmDialog:
+        dialogComponentType = ConfirmDialog;
+        title = QObject::tr("Javascript Confirm - %1");
+        break;
+    case WebContentsAdapterClient::PromptDialog:
+        dialogComponentType = PromptDialog;
+        title = QObject::tr("Javascript Prompt - %1");
+        break;
+    default:
+        Q_UNREACHABLE();
+    }
+
+    if (!ensureComponentLoaded(dialogComponentType))
         return false;
-    QQmlContext *context(creationContextForComponent(alertDialogComponent.data()));
-    QObject *dialog = alertDialogComponent->beginCreate(context);
+
+    QQmlComponent *dialogComponent = Q_NULLPTR;
+    switch(dialogComponentType) {
+    FOR_EACH_COMPONENT_TYPE(ASSIGN_DIALOG_COMPONENT_DATA_CASE_STATEMENT, NO_SEPARATOR)
+    default:
+        Q_UNREACHABLE();
+    }
+
+    QQmlContext *context(creationContextForComponent(dialogComponent));
+    QObject *dialog = dialogComponent->beginCreate(context);
     if (QQuickItem* item = qobject_cast<QQuickItem*>(dialog))
         item->setParentItem(m_view);
-    alertDialogComponent->completeCreate();
+    dialogComponent->completeCreate();
     QQmlProperty textProp(dialog, QStringLiteral("text"));
     textProp.write(dialogController->message());
 
     QQmlProperty titleProp(dialog, QStringLiteral("title"));
-    titleProp.write(QObject::tr("Javascript Alert - %1").arg(m_view->url().toString()));
-    QMetaObject::invokeMethod(dialog, "open");
+    titleProp.write(title.arg(m_view->url().toString()));
+
+    if (dialogComponentType == PromptDialog) {
+        QQmlProperty promptProp(dialog, QStringLiteral("prompt"));
+        promptProp.write(dialogController->defaultPrompt());
+        QQmlProperty inputSignal(dialog, QStringLiteral("onInput"));
+        CHECK_QML_SIGNAL_PROPERTY(inputSignal, dialogComponent->url());
+        static int setTextIndex = dialogController->metaObject()->indexOfSlot("textProvided(QString)");
+        QObject::connect(dialog, inputSignal.method(), dialogController, dialogController->metaObject()->method(setTextIndex));
+    }
+
     QQmlProperty acceptSignal(dialog, QStringLiteral("onAccepted"));
     QQmlProperty rejectSignal(dialog, QStringLiteral("onRejected"));
-    CHECK_QML_SIGNAL_PROPERTY(acceptSignal, AlertDialog, alertDialogComponent->url());
-    CHECK_QML_SIGNAL_PROPERTY(rejectSignal, "AlertDialog", alertDialogComponent->url());
+    CHECK_QML_SIGNAL_PROPERTY(acceptSignal, dialogComponent->url());
+    CHECK_QML_SIGNAL_PROPERTY(rejectSignal, dialogComponent->url());
 
     static int acceptIndex = dialogController->metaObject()->indexOfSlot("accept()");
     QObject::connect(dialog, acceptSignal.method(), dialogController, dialogController->metaObject()->method(acceptIndex));
     static int rejectIndex = dialogController->metaObject()->indexOfSlot("reject()");
     QObject::connect(dialog, rejectSignal.method(), dialogController, dialogController->metaObject()->method(rejectIndex));
 
+    QMetaObject::invokeMethod(dialog, "open");
     return true;
 }
