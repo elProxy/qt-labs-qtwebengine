@@ -76,7 +76,6 @@ void JavaScriptDialogManagerQt::RunJavaScriptDialog(content::WebContents *webCon
     Q_ASSERT(!m_activeDialogs.contains(webContents));
     m_activeDialogs.insert(webContents, dialog);
 
-    // FIXME: now switch to this:
     client->javascriptDialog(dialog);
 }
 

@@ -43,7 +43,6 @@
 #define UI_DELEGATES_MANAGER_H
 
 #include "qglobal.h"
-#include "javascript_dialog_controller.h"
 #include "web_contents_adapter.h"
 
 #include <QExplicitlySharedDataPointer>
@@ -130,7 +129,7 @@ public:
     void addMenuSeparator(QObject *menu);
     QObject *addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
     QQmlContext *creationContextForComponent(QQmlComponent *);
-    bool showAlertDialog(const QString &, QExplicitlySharedDataPointer<WebContentsAdapter>);
+    bool showDialog(JavaScriptDialogController *);
 
 private:
     bool ensureComponentLoaded(ComponentType);

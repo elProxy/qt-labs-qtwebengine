@@ -40,7 +40,9 @@
 ****************************************************************************/
 
 #include "ui_delegates_manager.h"
+
 #include "api/qquickwebengineview_p.h"
+#include "javascript_dialog_controller.h"
 
 #include <QAbstractListModel>
 #include <QClipboard>
@@ -244,41 +246,10 @@ QQmlComponent *UIDelegatesManager::loadDefaultUIDelegate(const QString &fileName
     return new QQmlComponent(engine, QUrl(absolutePath), QQmlComponent::PreferSynchronous, m_view);
 }
 
-class DialogNotifier : public QObject {
-    Q_OBJECT
-public:
-    DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter, QObject *parent = 0);
-
-public Q_SLOTS:
-    void accept();
-    void reject();
-
-private:
-    QString promptText;
-    QExplicitlySharedDataPointer<WebContentsAdapter> m_adapter;
-};
-
-DialogNotifier::DialogNotifier(QExplicitlySharedDataPointer<WebContentsAdapter> adapter, QObject *parent)
-    : QObject(parent)
-    , m_adapter(adapter)
-{
-}
-
-void DialogNotifier::accept()
-{
-    m_adapter->javaScriptDialogDone(true, promptText);
-}
-
-void DialogNotifier::reject()
-{
-    m_adapter->javaScriptDialogDone(false, promptText);
-}
-
-
 #include "ui_delegates_manager.moc"
 
 
-bool UIDelegatesManager::showAlertDialog(const QString &message, QExplicitlySharedDataPointer<WebContentsAdapter> adapter)
+bool UIDelegatesManager::showDialog(JavaScriptDialogController *dialogController)
 {
     if (!ensureComponentLoaded(AlertDialog))
         return false;
@@ -287,23 +258,21 @@ bool UIDelegatesManager::showAlertDialog(const QString &message, QExplicitlyShar
     if (QQuickItem* item = qobject_cast<QQuickItem*>(dialog))
         item->setParentItem(m_view);
     alertDialogComponent->completeCreate();
-    if (!message.isEmpty()) {
-        QQmlProperty textProp(dialog, QStringLiteral("text"));
-        textProp.write(message);
-    }
+    QQmlProperty textProp(dialog, QStringLiteral("text"));
+    textProp.write(dialogController->message());
+
     QQmlProperty titleProp(dialog, QStringLiteral("title"));
     titleProp.write(QObject::tr("Javascript Alert - %1").arg(m_view->url().toString()));
     QMetaObject::invokeMethod(dialog, "open");
     QQmlProperty acceptSignal(dialog, QStringLiteral("onAccepted"));
     QQmlProperty rejectSignal(dialog, QStringLiteral("onRejected"));
-    CHECK_QML_SIGNAL_PROPERTY(acceptSignal, "AlertDialog", alertDialogComponent->url());
+    CHECK_QML_SIGNAL_PROPERTY(acceptSignal, AlertDialog, alertDialogComponent->url());
     CHECK_QML_SIGNAL_PROPERTY(rejectSignal, "AlertDialog", alertDialogComponent->url());
 
-    DialogNotifier *notifier = new DialogNotifier(adapter, dialog);
-    static int acceptIndex = notifier->metaObject()->indexOfSlot("accept()");
-    QObject::connect(dialog, acceptSignal.method(), notifier, notifier->metaObject()->method(acceptIndex));
-    static int rejectIndex = notifier->metaObject()->indexOfSlot("reject()");
-    QObject::connect(dialog, rejectSignal.method(), notifier, notifier->metaObject()->method(rejectIndex));
+    static int acceptIndex = dialogController->metaObject()->indexOfSlot("accept()");
+    QObject::connect(dialog, acceptSignal.method(), dialogController, dialogController->metaObject()->method(acceptIndex));
+    static int rejectIndex = dialogController->metaObject()->indexOfSlot("reject()");
+    QObject::connect(dialog, rejectSignal.method(), dialogController, dialogController->metaObject()->method(rejectIndex));
 
     return true;
 }

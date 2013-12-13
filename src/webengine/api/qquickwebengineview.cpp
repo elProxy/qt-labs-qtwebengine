@@ -42,6 +42,7 @@
 #include "qquickwebengineview_p.h"
 #include "qquickwebengineview_p_p.h"
 
+#include "javascript_dialog_controller.h"
 #include "render_widget_host_view_qt_delegate_quick.h"
 #include "ui_delegates_manager.h"
 #include "web_contents_adapter.h"

@@ -328,17 +328,18 @@ bool QWebEnginePagePrivate::contextMenuRequested(const WebEngineContextMenuData 
 void QWebEnginePagePrivate::javascriptDialog(JavaScriptDialogController *controller)
 {
     Q_Q(QWebEnginePage);
-    bool accepted;
+    bool accepted = false;
     QString promptResult;
-    switch (type) {
+    switch (controller->type()) {
     case AlertDialog:
         q->javaScriptAlert(0, controller->message());
+        accepted = true;
         break;
     case ConfirmDialog:
         accepted = q->javaScriptConfirm(0, controller->message());
         break;
     case PromptDialog:
-        accepted = q->javaScriptPrompt(0, controller->message, controller->defaultPrompt(), &promptResult);
+        accepted = q->javaScriptPrompt(0, controller->message(), controller->defaultPrompt(), &promptResult);
         if (accepted)
             controller->textProvided(promptResult);
         break;
