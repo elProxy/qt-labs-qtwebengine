@@ -3,8 +3,9 @@ import QtQuick.Controls 1.1
 
 MessageDialog {
     icon: StandardIcon.Question
-//    TextField {
-//
-//    }
+
+    signal onInput();
+    // FIXME: promp missing in Qt Quick Dialogs atm.
+
     standardButtons: StandardButton.Ok | StandardButton.Cancel
 }
