@@ -133,7 +133,7 @@ public:
     void addMenuSeparator(QObject *menu);
     QObject *addMenu(QObject *parentMenu, const QString &title, const QPoint &pos = QPoint());
     QQmlContext *creationContextForComponent(QQmlComponent *);
-    bool showDialog(JavaScriptDialogController *);
+    void showDialog(JavaScriptDialogController *);
 
 private:
     bool ensureComponentLoaded(ComponentType);

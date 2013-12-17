@@ -254,7 +254,7 @@ QQmlComponent *UIDelegatesManager::loadDefaultUIDelegate(const QString &fileName
         break;
 
 
-bool UIDelegatesManager::showDialog(JavaScriptDialogController *dialogController)
+void UIDelegatesManager::showDialog(JavaScriptDialogController *dialogController)
 {
     ComponentType dialogComponentType = Invalid;
     QString title;
@@ -276,7 +276,7 @@ bool UIDelegatesManager::showDialog(JavaScriptDialogController *dialogController
     }
 
     if (!ensureComponentLoaded(dialogComponentType))
-        return false;
+        return;
 
     QQmlComponent *dialogComponent = Q_NULLPTR;
     switch(dialogComponentType) {
@@ -287,8 +287,9 @@ bool UIDelegatesManager::showDialog(JavaScriptDialogController *dialogController
 
     QQmlContext *context(creationContextForComponent(dialogComponent));
     QObject *dialog = dialogComponent->beginCreate(context);
-    if (QQuickItem* item = qobject_cast<QQuickItem*>(dialog))
-        item->setParentItem(m_view);
+//    if (QQuickItem* item = qobject_cast<QQuickItem*>(dialog))
+//        item->setParentItem(m_view);
+    dialog->setParent(m_view);
     dialogComponent->completeCreate();
     QQmlProperty textProp(dialog, QStringLiteral("text"));
     textProp.write(dialogController->message());
@@ -316,5 +317,4 @@ bool UIDelegatesManager::showDialog(JavaScriptDialogController *dialogController
     QObject::connect(dialog, rejectSignal.method(), dialogController, dialogController->metaObject()->method(rejectIndex));
 
     QMetaObject::invokeMethod(dialog, "open");
-    return true;
 }
