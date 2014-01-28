@@ -1670,6 +1670,8 @@ void tst_QWebEnginePage::loadCachedPage()
 void tst_QWebEnginePage::backActionUpdate()
 {
     QWebEngineView view;
+    view.show();
+    QTest::qWaitForWindowExposed(&view);
     QWebEnginePage *page = view.page();
     QAction *action = page->action(QWebEnginePage::Back);
     QVERIFY(!action->isEnabled());
@@ -1678,7 +1680,9 @@ void tst_QWebEnginePage::backActionUpdate()
     page->load(url);
     QTRY_COMPARE(loadSpy.count(), 1);
     QVERIFY(!action->isEnabled());
-    QTest::mouseClick(&view, Qt::LeftButton, 0, QPoint(10, 10));
+    QWidget *delegate = view.findChild<QWidget*>(QStringLiteral("RenderWidgetHostViewDelegate"));
+    QTest::mouseClick(delegate, Qt::LeftButton, 0, QPoint(15, 15));
+    waitForSignal(page, SIGNAL(loadFinished(bool)), 1000);
     QTRY_COMPARE(loadSpy.count(), 2);
 
     QVERIFY(action->isEnabled());

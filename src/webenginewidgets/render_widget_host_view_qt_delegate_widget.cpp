@@ -59,6 +59,8 @@ RenderWidgetHostViewQtDelegateWidget::RenderWidgetHostViewQtDelegateWidget(Rende
     setMouseTracking(true);
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAttribute(Qt::WA_OpaquePaintEvent);
+    // Used for autotests
+    setObjectName(QStringLiteral("RenderWidgetHostViewDelegate"));
 }
 
 void RenderWidgetHostViewQtDelegateWidget::initAsChild(WebContentsAdapterClient* container)
