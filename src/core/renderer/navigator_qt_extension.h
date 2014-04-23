@@ -39,15 +39,17 @@
 **
 ****************************************************************************/
 
-#include "content/public/renderer/content_renderer_client.h"
+#ifndef NAVIGATOR_QT_EXTENSION_H
+#define NAVIGATOR_QT_EXTENSION_H
 
-#include <QtGlobal>
+namespace v8 {
+class Extension;
+}
 
-class ContentRendererClientQt : public content::ContentRendererClient {
+class NavigatorQtExtension {
 public:
-    virtual void RenderViewCreated(content::RenderView *render_view) Q_DECL_OVERRIDE;
-    virtual void RenderThreadStarted() Q_DECL_OVERRIDE;
-
-    // Update this when we want to allow overriding error pages.
-    virtual bool ShouldSuppressErrorPage(const GURL &) Q_DECL_OVERRIDE { return true; }
+    static v8::Extension* Get();
 };
+
+
+#endif // NAVIGATOR_QT_EXTENSION_H

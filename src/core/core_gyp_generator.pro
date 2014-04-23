@@ -49,6 +49,7 @@ SOURCES = \
         qt_render_view_observer_host.cpp \
         render_widget_host_view_qt.cpp \
         renderer/content_renderer_client_qt.cpp \
+        renderer/navigator_qt_extension.cpp \
         renderer/qt_render_view_observer.cpp \
         resource_bundle_qt.cpp \
         resource_context_qt.cpp \
@@ -90,6 +91,7 @@ HEADERS = \
         render_widget_host_view_qt.h \
         render_widget_host_view_qt_delegate.h \
         renderer/content_renderer_client_qt.h \
+        renderer/navigator_qt_extension.h \
         renderer/qt_render_view_observer.h \
         resource_context_qt.h \
         resource_dispatcher_host_delegate_qt.h \

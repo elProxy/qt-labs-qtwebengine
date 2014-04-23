@@ -41,10 +41,20 @@
 
 #include "renderer/content_renderer_client_qt.h"
 
+#include "content/public/renderer/render_thread.h"
+
 #include "renderer/qt_render_view_observer.h"
+#include "renderer/navigator_qt_extension.h"
+
 
 void ContentRendererClientQt::RenderViewCreated(content::RenderView* render_view)
 {
     // RenderViewObserver destroys itself with its RenderView.
     new QtRenderViewObserver(render_view);
+}
+
+void ContentRendererClientQt::RenderThreadStarted()
+{
+    content::RenderThread* renderThread = content::RenderThread::Get();
+    renderThread->RegisterExtension(NavigatorQtExtension::Get());
 }
