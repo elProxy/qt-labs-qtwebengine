@@ -29,6 +29,8 @@ IPC_MESSAGE_ROUTED1(QtRenderViewObserver_FetchDocumentMarkup,
 IPC_MESSAGE_ROUTED1(QtRenderViewObserver_FetchDocumentInnerText,
                     uint64 /* requestId */)
 
+IPC_MESSAGE_ROUTED1(QtRenderViewObserver_NavigatorQtOnMessage, base::ListValue /*message*/)
+
 //-----------------------------------------------------------------------------
 // WebContents messages
 // These are messages sent from the renderer back to the browser process.
@@ -40,3 +42,6 @@ IPC_MESSAGE_ROUTED2(QtRenderViewObserverHost_DidFetchDocumentMarkup,
 IPC_MESSAGE_ROUTED2(QtRenderViewObserverHost_DidFetchDocumentInnerText,
                     uint64 /* requestId */,
                     base::string16 /* innerText */)
+
+IPC_MESSAGE_ROUTED1(QtRenderViewObserverHost_NavigatorQtPostMessage, base::ListValue /*message*/)
+

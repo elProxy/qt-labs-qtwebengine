@@ -41,11 +41,15 @@
 
 #include "navigator_qt_extension.h"
 
-#include <QtCore/qcompilerdetection.h>
+#include "common/qt_messages.h"
 
 #include "content/public/renderer/render_view.h"
+#include "content/public/renderer/v8_value_converter.h"
 #include "third_party/WebKit/public/web/WebFrame.h"
 #include "v8/include/v8.h"
+
+#include <QtCore/qcompilerdetection.h>
+#include <QScopedPointer>
 
 #include <QDebug>
 
@@ -75,12 +79,20 @@ public:
 
     virtual v8::Handle<v8::FunctionTemplate> GetNativeFunctionTemplate(v8::Isolate* isolate, v8::Handle<v8::String> name) Q_DECL_OVERRIDE;
 
-    static void NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value>& args) {
-        qDebug() << Q_FUNC_INFO << "called with" << args.Length() << "arguments." << args[0]->IsString();
-        if (args.Length() != 1 || !args[0]->IsString())
+    static void NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
+    {
+        content::RenderView *renderView = GetRenderView();
+        if (!renderView || args.Length() != 1)
             return;
-        // FIXME: get render view and send the message over IPC
-            qDebug() << (*v8::String::Utf8Value(args[0]->ToString()));
+
+        QScopedPointer<content::V8ValueConverter> converter(content::V8ValueConverter::create());
+        base::ListValue list;
+        converter->SetDateAllowed(true);
+        converter->SetRegExpAllowed(true);
+        base::Value* value = converter->FromV8Value(args[0], args.GetIsolate()->GetCurrentContext());
+        list.Set(0, value ? value : base::Value::CreateNullValue());
+
+        renderView->Send(new QtRenderViewObserverHost_NavigatorQtPostMessage(renderView->GetRoutingID(), list));
     }
 
 };
@@ -90,10 +102,12 @@ content::RenderView *NavigatorQtExtensionWrapper::GetRenderView()
       blink::WebFrame* webframe = blink::WebFrame::frameForCurrentContext();
       DCHECK(webframe) << "There should be an active frame since we just got "
           "a native function called.";
-      if (!webframe) return NULL;
+      if (!webframe)
+          return 0;
 
       blink::WebView* webview = webframe->view();
-      if (!webview) return NULL;  // can happen during closing
+      if (!webview)
+          return 0;  // can happen during closing
 
       return content::RenderView::FromWebView(webview);
 }

@@ -41,6 +41,8 @@
 
 #include "qt_render_view_observer_host.h"
 
+#include "base/values.h"
+
 #include "common/qt_messages.h"
 #include "type_conversion.h"
 #include "web_contents_adapter_client.h"
@@ -69,6 +71,7 @@ bool QtRenderViewObserverHost::OnMessageReceived(const IPC::Message& message)
                             onDidFetchDocumentMarkup)
         IPC_MESSAGE_HANDLER(QtRenderViewObserverHost_DidFetchDocumentInnerText,
                             onDidFetchDocumentInnerText)
+        IPC_MESSAGE_HANDLER(QtRenderViewObserverHost_NavigatorQtPostMessage, onNavigatorQtPostMessage)
         IPC_MESSAGE_UNHANDLED(handled = false)
     IPC_END_MESSAGE_MAP()
     return handled;
@@ -83,4 +86,13 @@ void QtRenderViewObserverHost::onDidFetchDocumentMarkup(quint64 requestId, const
 void QtRenderViewObserverHost::onDidFetchDocumentInnerText(quint64 requestId, const base::string16& innerText)
 {
     m_adapterClient->didFetchDocumentInnerText(requestId, toQt(innerText));
+}
+
+#include <QDebug>
+void QtRenderViewObserverHost::onNavigatorQtPostMessage(const base::ListValue &message)
+{
+    const base::Value* extractedValue;
+    if (!message.Get(0, &extractedValue))
+        return;
+    qDebug() << Q_FUNC_INFO << "message received" << fromJSValue(extractedValue);
 }
