@@ -56,9 +56,9 @@
 static const char kNavigatorQtExtensionName[] = "v8/NavigatorQt";
 
 static const char* const kNavigatorQtApi =
-        "if (typeof(navigator) == 'undefined')"
+        "if (typeof(navigator) === 'undefined')"
         "  navigator = {};"
-        "if (typeof(navigator.qt) == 'undefined')"
+        "if (typeof(navigator.qt) === 'undefined')"
         "  navigator.qt = {};"
         "navigator.qt.postMessage = function(message) {"
         "  native function NativeQtPostMessage();"
