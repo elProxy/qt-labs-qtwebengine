@@ -105,6 +105,7 @@ Q_SIGNALS:
     void fullScreenRequested(bool fullScreen);
     void isFullScreenChanged();
     void extraContextMenuEntriesComponentChanged();
+    void messageRecieved(const QString &message);
 
 private:
     QQuickWebEngineViewExperimental(QQuickWebEngineViewPrivate* viewPrivate);
@@ -154,6 +155,7 @@ public:
     virtual void passOnFocus(bool reverse) Q_DECL_OVERRIDE;
     virtual void javaScriptConsoleMessage(JavaScriptConsoleMessageLevel level, const QString& message, int lineNumber, const QString& sourceID) Q_DECL_OVERRIDE;
     virtual void authenticationRequired(const QUrl&, const QString&, bool, const QString&, QString*, QString*) Q_DECL_OVERRIDE { }
+    virtual void navigatorQtPostMessage(const QString &) Q_DECL_OVERRIDE;
 
     void setDevicePixelRatio(qreal);
     void adoptWebContents(WebContentsAdapter *webContents);

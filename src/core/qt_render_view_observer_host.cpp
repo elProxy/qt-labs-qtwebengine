@@ -103,4 +103,8 @@ void QtRenderViewObserverHost::onNavigatorQtPostMessage(const base::ListValue &m
     const base::Value* extractedValue;
     if (!message.Get(0, &extractedValue))
         return;
+    base::string16 out;
+    if (!extractedValue->GetAsString(&out))
+        return;
+    m_adapterClient->navigatorQtPostMessage(toQt(out));
 }

@@ -136,6 +136,7 @@ public:
     virtual void passOnFocus(bool reverse) Q_DECL_OVERRIDE { Q_UNUSED(reverse); };
     virtual void javaScriptConsoleMessage(JavaScriptConsoleMessageLevel level, const QString& message, int lineNumber, const QString& sourceID) Q_DECL_OVERRIDE;
     virtual void authenticationRequired(const QUrl &requestUrl, const QString &realm, bool isProxy, const QString &challengingHost, QString *outUser, QString *outPassword) Q_DECL_OVERRIDE;
+    virtual void navigatorQtPostMessage(const QString &) Q_DECL_OVERRIDE {};
 
     void updateAction(QWebEnginePage::WebAction) const;
     void updateNavigationActions();

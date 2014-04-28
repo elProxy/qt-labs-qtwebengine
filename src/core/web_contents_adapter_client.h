@@ -143,6 +143,7 @@ public:
     virtual void passOnFocus(bool reverse) = 0;
     virtual void javaScriptConsoleMessage(JavaScriptConsoleMessageLevel level, const QString& message, int lineNumber, const QString& sourceID) = 0;
     virtual void authenticationRequired(const QUrl &requestUrl, const QString &realm, bool isProxy, const QString &challengingHost, QString *outUser, QString *outPassword) = 0;
+    virtual void navigatorQtPostMessage(const QString &) = 0;
 };
 
 #endif // WEB_CONTENTS_ADAPTER_CLIENT_H
