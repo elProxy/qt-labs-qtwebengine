@@ -78,6 +78,84 @@ static const int kTestWindowWidth = 800;
 static const int kTestWindowHeight = 600;
 static const int kHistoryStreamVersion = 3;
 
+
+static QVariant fromJSValue(const base::Value *result)
+{
+    QVariant ret;
+    switch (result->GetType()) {
+    case base::Value::TYPE_NULL:
+        break;
+    case base::Value::TYPE_BOOLEAN:
+    {
+        bool out;
+        if (result->GetAsBoolean(&out))
+            ret.setValue(out);
+        break;
+    }
+    case base::Value::TYPE_INTEGER:
+    {
+        int out;
+        if (result->GetAsInteger(&out))
+            ret.setValue(out);
+        break;
+    }
+    case base::Value::TYPE_DOUBLE:
+    {
+        double out;
+        if (result->GetAsDouble(&out))
+            ret.setValue(out);
+        break;
+    }
+    case base::Value::TYPE_STRING:
+    {
+        base::string16 out;
+        if (result->GetAsString(&out))
+            ret.setValue(toQt(out));
+        break;
+    }
+    case base::Value::TYPE_LIST:
+    {
+        const base::ListValue *out;
+        if (result->GetAsList(&out)) {
+            QVariantList list;
+            list.reserve(out->GetSize());
+            for (size_t i = 0; i < out->GetSize(); ++i) {
+                const base::Value *outVal = 0;
+                if (out->Get(i, &outVal) && outVal)
+                    list.insert(i, fromJSValue(outVal));
+            }
+            ret.setValue(list);
+        }
+        break;
+    }
+    case base::Value::TYPE_DICTIONARY:
+    {
+        const base::DictionaryValue *out;
+        if (result->GetAsDictionary(&out)) {
+            QVariantMap map;
+            base::DictionaryValue::Iterator it(*out);
+            while (!it.IsAtEnd()) {
+                map.insert(toQt(it.key()), fromJSValue(&it.value()));
+                it.Advance();
+            }
+            ret.setValue(map);
+        }
+        break;
+    }
+    case base::Value::TYPE_BINARY:
+    {
+        const base::BinaryValue *out = static_cast<const base::BinaryValue*>(result);
+        QByteArray data(out->GetBuffer(), out->GetSize());
+        ret.setValue(data);
+        break;
+    }
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+    return ret;
+}
+
 static void callbackOnEvaluateJS(WebContentsAdapterClient *adapterClient, quint64 requestId, const base::Value *result)
 {
     adapterClient->didRunJavaScript(requestId, fromJSValue(result));

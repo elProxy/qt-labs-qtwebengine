@@ -47,7 +47,6 @@
 #include "type_conversion.h"
 #include "web_contents_adapter_client.h"
 
-#include <QDebug>
 
 QtRenderViewObserverHost::QtRenderViewObserverHost(content::WebContents *webContents, WebContentsAdapterClient *adapterClient)
     : content::WebContentsObserver(webContents)
