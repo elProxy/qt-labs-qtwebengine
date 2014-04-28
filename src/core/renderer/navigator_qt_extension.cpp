@@ -114,7 +114,9 @@ void NavigatorQtExtension::onMessage(const base::ListValue &message, blink::WebV
         return;
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::HandleScope handleScope(isolate);
-    v8::Handle<v8::Context> context = webView->mainFrame()->mainWorldScriptContext();
+    // TODO: test whether this works when a subframe tries to use navigator.qt
+    blink::WebFrame *frame = webView->mainFrame();
+    v8::Handle<v8::Context> context = frame->mainWorldScriptContext();
     v8::Context::Scope contextScope(context);
 
     v8::Handle<v8::Object> global(context->Global());
@@ -133,5 +135,5 @@ void NavigatorQtExtension::onMessage(const base::ListValue &message, blink::WebV
     v8::Handle<v8::Value> argv[1];
     scoped_ptr<content::V8ValueConverter> converter(content::V8ValueConverter::create());
     argv[0] = converter->ToV8Value(extractedValue, context);
-    callback->Call(navigatorQtValue, 1, argv);
+    frame->callFunctionEvenIfScriptDisabled(callback, navigatorQtValue->ToObject(), 1, argv);
 }
