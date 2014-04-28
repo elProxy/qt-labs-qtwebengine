@@ -47,14 +47,26 @@
 #include "renderer/navigator_qt_extension.h"
 
 
+ContentRendererClientQt::ContentRendererClientQt()
+    : m_navigatorQtExtension(0)
+{
+}
+
+ContentRendererClientQt::~ContentRendererClientQt()
+{
+
+}
+
 void ContentRendererClientQt::RenderViewCreated(content::RenderView* render_view)
 {
+    Q_ASSERT(m_navigatorQtExtension);
     // RenderViewObserver destroys itself with its RenderView.
-    new QtRenderViewObserver(render_view);
+    new QtRenderViewObserver(render_view, m_navigatorQtExtension);
 }
 
 void ContentRendererClientQt::RenderThreadStarted()
 {
     content::RenderThread* renderThread = content::RenderThread::Get();
-    renderThread->RegisterExtension(NavigatorQtExtension::Get());
+    m_navigatorQtExtension = new NavigatorQtExtension;
+    renderThread->RegisterExtension(m_navigatorQtExtension);
 }

@@ -41,13 +41,21 @@
 
 #include "content/public/renderer/content_renderer_client.h"
 
+
 #include <QtGlobal>
+
+class NavigatorQtExtension;
 
 class ContentRendererClientQt : public content::ContentRendererClient {
 public:
+    ContentRendererClientQt();
+    virtual ~ContentRendererClientQt();
+
     virtual void RenderViewCreated(content::RenderView *render_view) Q_DECL_OVERRIDE;
     virtual void RenderThreadStarted() Q_DECL_OVERRIDE;
 
     // Update this when we want to allow overriding error pages.
     virtual bool ShouldSuppressErrorPage(const GURL &) Q_DECL_OVERRIDE { return true; }
+private:
+    NavigatorQtExtension* m_navigatorQtExtension;
 };

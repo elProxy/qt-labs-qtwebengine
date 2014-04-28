@@ -46,12 +46,9 @@
 #include "content/public/renderer/render_view.h"
 #include "content/public/renderer/v8_value_converter.h"
 #include "third_party/WebKit/public/web/WebFrame.h"
-#include "v8/include/v8.h"
+#include "third_party/WebKit/public/web/WebView.h"
 
-#include <QtCore/qcompilerdetection.h>
 #include <QScopedPointer>
-
-#include <QDebug>
 
 static const char kNavigatorQtExtensionName[] = "v8/NavigatorQt";
 
@@ -68,40 +65,10 @@ static const char* const kNavigatorQtApi =
 // FIXME: we probably want to put all of QWebChannel's JS into the extension for maximal gains.
 
 
-class NavigatorQtExtensionWrapper : public v8::Extension {
-
-public:
-    static content::RenderView *GetRenderView();
-
-    NavigatorQtExtensionWrapper() : v8::Extension(kNavigatorQtExtensionName, kNavigatorQtApi)
-    {
-    }
-
-    virtual v8::Handle<v8::FunctionTemplate> GetNativeFunctionTemplate(v8::Isolate* isolate, v8::Handle<v8::String> name) Q_DECL_OVERRIDE;
-
-    static void NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
-    {
-        content::RenderView *renderView = GetRenderView();
-        if (!renderView || args.Length() != 1)
-            return;
-
-        QScopedPointer<content::V8ValueConverter> converter(content::V8ValueConverter::create());
-        base::ListValue list;
-        converter->SetDateAllowed(true);
-        converter->SetRegExpAllowed(true);
-        base::Value* value = converter->FromV8Value(args[0], args.GetIsolate()->GetCurrentContext());
-        list.Set(0, value ? value : base::Value::CreateNullValue());
-
-        renderView->Send(new QtRenderViewObserverHost_NavigatorQtPostMessage(renderView->GetRoutingID(), list));
-    }
-
-};
-
-content::RenderView *NavigatorQtExtensionWrapper::GetRenderView()
+content::RenderView *NavigatorQtExtension::GetRenderView()
 {
       blink::WebFrame* webframe = blink::WebFrame::frameForCurrentContext();
-      DCHECK(webframe) << "There should be an active frame since we just got "
-          "a native function called.";
+      DCHECK(webframe) << "There should be an active frame since we just got a native function called.";
       if (!webframe)
           return 0;
 
@@ -112,16 +79,59 @@ content::RenderView *NavigatorQtExtensionWrapper::GetRenderView()
       return content::RenderView::FromWebView(webview);
 }
 
-v8::Handle<v8::FunctionTemplate> NavigatorQtExtensionWrapper::GetNativeFunctionTemplate(v8::Isolate *isolate, v8::Handle<v8::String> name)
+void NavigatorQtExtension::NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    content::RenderView *renderView = GetRenderView();
+    if (!renderView || args.Length() != 1)
+        return;
+
+    QScopedPointer<content::V8ValueConverter> converter(content::V8ValueConverter::create());
+    base::ListValue list;
+    base::Value* value = converter->FromV8Value(args[0], args.GetIsolate()->GetCurrentContext());
+    list.Set(0, value ? value : base::Value::CreateNullValue());
+
+    renderView->Send(new QtRenderViewObserverHost_NavigatorQtPostMessage(renderView->GetRoutingID(), list));
+}
+
+NavigatorQtExtension::NavigatorQtExtension() : v8::Extension(kNavigatorQtExtensionName, kNavigatorQtApi)
+{
+}
+
+
+v8::Handle<v8::FunctionTemplate> NavigatorQtExtension::GetNativeFunctionTemplate(v8::Isolate *isolate, v8::Handle<v8::String> name)
 {
     if (name->Equals(v8::String::NewFromUtf8(isolate, "NativeQtPostMessage")))
         return v8::FunctionTemplate::New(isolate, NativeQtPostMessage);
 
     return v8::Handle<v8::FunctionTemplate>();
-
 }
 
-v8::Extension *NavigatorQtExtension::Get()
+void NavigatorQtExtension::onMessage(const base::ListValue &message, blink::WebView *webView)
 {
-    return new NavigatorQtExtensionWrapper;
+    Q_ASSERT(webView);
+    const base::Value* extractedValue;
+    if (!message.Get(0, &extractedValue))
+        return;
+    v8::Isolate* isolate = v8::Isolate::GetCurrent();
+    v8::HandleScope handleScope(isolate);
+    v8::Handle<v8::Context> context = webView->mainFrame()->mainWorldScriptContext();
+    v8::Context::Scope contextScope(context);
+
+    v8::Handle<v8::Object> global(context->Global());
+    v8::Handle<v8::Value> navigatorValue(global->Get(v8::String::NewFromUtf8(isolate,"navigator")));
+    if (!navigatorValue->IsObject())
+        return;
+    v8::Handle<v8::Value> navigatorQtValue(navigatorValue->ToObject()->Get(v8::String::NewFromUtf8(isolate, "qt")));
+    if (!navigatorQtValue->IsObject())
+        return;
+    v8::Handle<v8::Value> onmessageCallbackValue(navigatorQtValue->ToObject()->Get(v8::String::NewFromUtf8(isolate, "onmessage")));
+    if (!onmessageCallbackValue->IsFunction()) {
+        qWarning("onmessage is not a callable property of navigator.qt. Some things might not work as expected.");
+        return;
+    }
+    v8::Handle<v8::Function> callback = v8::Handle<v8::Function>::Cast(onmessageCallbackValue);
+    v8::Handle<v8::Value> argv[1];
+    scoped_ptr<content::V8ValueConverter> converter(content::V8ValueConverter::create());
+    argv[0] = converter->ToV8Value(extractedValue, context);
+    callback->Call(navigatorQtValue, 1, argv);
 }

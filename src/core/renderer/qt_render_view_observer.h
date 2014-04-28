@@ -43,20 +43,22 @@
 
 #include <QtGlobal>
 
+class NavigatorQtExtension;
 namespace base {
 class ListValue;
 }
 
 class QtRenderViewObserver : public content::RenderViewObserver {
 public:
-    QtRenderViewObserver(content::RenderView* render_view);
+    QtRenderViewObserver(content::RenderView* render_view, NavigatorQtExtension *extension);
 
 private:
     void onFetchDocumentMarkup(quint64 requestId);
     void onFetchDocumentInnerText(quint64 requestId);
-    void onNavigatorQtOnMessage(const base::ListValue &message);
+    void onMessageForNavigatorQt(const base::ListValue &);
 
     virtual bool OnMessageReceived(const IPC::Message& message) Q_DECL_OVERRIDE;
 
+    NavigatorQtExtension *m_navigatorQtExtension;
     DISALLOW_COPY_AND_ASSIGN(QtRenderViewObserver);
 };

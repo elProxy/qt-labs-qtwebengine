@@ -42,14 +42,39 @@
 #ifndef NAVIGATOR_QT_EXTENSION_H
 #define NAVIGATOR_QT_EXTENSION_H
 
-namespace v8 {
-class Extension;
+#include "v8/include/v8.h"
+
+#include <QtCore/qcompilerdetection.h>
+
+namespace base {
+class ListValue;
+}
+namespace blink {
+class WebView;
+}
+namespace content {
+class RenderView;
 }
 
-class NavigatorQtExtension {
+
+class NavigatorQtExtension : public v8::Extension
+{
+
 public:
-    static v8::Extension* Get();
+    NavigatorQtExtension();
+
+    // v8::Extension
+    virtual v8::Handle<v8::FunctionTemplate> GetNativeFunctionTemplate(v8::Isolate* isolate, v8::Handle<v8::String> name) Q_DECL_OVERRIDE;
+
+    void onMessage(const base::ListValue &message, blink::WebView *);
+
+private:
+    static content::RenderView *GetRenderView();
+    static void NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+
 };
+
 
 
 #endif // NAVIGATOR_QT_EXTENSION_H

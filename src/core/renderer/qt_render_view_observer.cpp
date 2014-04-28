@@ -42,19 +42,18 @@
 #include "renderer/qt_render_view_observer.h"
 
 #include "common/qt_messages.h"
+#include "renderer/navigator_qt_extension.h"
 
+#include "base/values.h"
 #include "content/public/renderer/render_view.h"
 #include "third_party/WebKit/public/web/WebDocument.h"
 #include "third_party/WebKit/public/web/WebElement.h"
 #include "third_party/WebKit/public/web/WebFrame.h"
 #include "third_party/WebKit/public/web/WebView.h"
 
-#include "type_conversion.h"
-
-#include <QDebug>
-
-QtRenderViewObserver::QtRenderViewObserver(content::RenderView* render_view)
+QtRenderViewObserver::QtRenderViewObserver(content::RenderView* render_view, NavigatorQtExtension *extension)
     : content::RenderViewObserver(render_view)
+    , m_navigatorQtExtension(extension)
 {
 }
 
@@ -74,12 +73,9 @@ void QtRenderViewObserver::onFetchDocumentInnerText(quint64 requestId)
         render_view()->GetWebView()->mainFrame()->document().documentElement().innerText()));
 }
 
-void QtRenderViewObserver::onNavigatorQtOnMessage(const base::ListValue &message)
+void QtRenderViewObserver::onMessageForNavigatorQt(const base::ListValue &message)
 {
-    const base::Value* extractedValue;
-    if (!message.Get(0, &extractedValue))
-        return;
-    qDebug() << Q_FUNC_INFO << "message received" << fromJSValue(extractedValue);
+    m_navigatorQtExtension->onMessage(message, render_view()->GetWebView());
 }
 
 bool QtRenderViewObserver::OnMessageReceived(const IPC::Message& message)
@@ -88,7 +84,7 @@ bool QtRenderViewObserver::OnMessageReceived(const IPC::Message& message)
     IPC_BEGIN_MESSAGE_MAP(QtRenderViewObserver, message)
         IPC_MESSAGE_HANDLER(QtRenderViewObserver_FetchDocumentMarkup, onFetchDocumentMarkup)
         IPC_MESSAGE_HANDLER(QtRenderViewObserver_FetchDocumentInnerText, onFetchDocumentInnerText)
-        IPC_MESSAGE_HANDLER(QtRenderViewObserver_NavigatorQtOnMessage, onNavigatorQtOnMessage)
+        IPC_MESSAGE_HANDLER(QtRenderViewObserver_NavigatorQtOnMessage, onMessageForNavigatorQt)
         IPC_MESSAGE_UNHANDLED(handled = false)
     IPC_END_MESSAGE_MAP()
     return handled;

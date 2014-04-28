@@ -103,5 +103,4 @@ void QtRenderViewObserverHost::onNavigatorQtPostMessage(const base::ListValue &m
     const base::Value* extractedValue;
     if (!message.Get(0, &extractedValue))
         return;
-    qDebug() << Q_FUNC_INFO << "message received" << fromJSValue(extractedValue);
 }
