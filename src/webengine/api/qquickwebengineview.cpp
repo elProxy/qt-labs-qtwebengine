@@ -345,7 +345,11 @@ void QQuickWebEngineViewPrivate::javaScriptConsoleMessage(JavaScriptConsoleMessa
 
 void QQuickWebEngineViewPrivate::navigatorQtPostMessage(const QString &message)
 {
-    Q_EMIT e->messageReceived(message);
+    Q_Q(QQuickWebEngineView);
+    QVariantMap variantMap;
+    variantMap.insert(QLatin1String("data"), message);
+    variantMap.insert(QLatin1String("origin"), q->url());
+    Q_EMIT e->messageReceived(variantMap);
 }
 
 void QQuickWebEngineViewPrivate::setDevicePixelRatio(qreal devicePixelRatio)

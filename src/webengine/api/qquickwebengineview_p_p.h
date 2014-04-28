@@ -105,7 +105,7 @@ Q_SIGNALS:
     void fullScreenRequested(bool fullScreen);
     void isFullScreenChanged();
     void extraContextMenuEntriesComponentChanged();
-    void messageReceived(const QString &message);
+    void messageReceived(const QVariantMap &message);
 
 private:
     QQuickWebEngineViewExperimental(QQuickWebEngineViewPrivate* viewPrivate);

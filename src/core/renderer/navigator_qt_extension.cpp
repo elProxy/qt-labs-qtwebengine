@@ -131,9 +131,13 @@ void NavigatorQtExtension::onMessage(const base::ListValue &message, blink::WebV
         qWarning("onmessage is not a callable property of navigator.qt. Some things might not work as expected.");
         return;
     }
+
+    v8::Handle<v8::Object> messageObject(v8::Object::New(isolate));
+    scoped_ptr<content::V8ValueConverter> converter(content::V8ValueConverter::create());
+    messageObject->Set(v8::String::NewFromUtf8(isolate, "data"), converter->ToV8Value(extractedValue, context), v8::PropertyAttribute(v8::ReadOnly | v8::DontDelete));
+
     v8::Handle<v8::Function> callback = v8::Handle<v8::Function>::Cast(onmessageCallbackValue);
     v8::Handle<v8::Value> argv[1];
-    scoped_ptr<content::V8ValueConverter> converter(content::V8ValueConverter::create());
-    argv[0] = converter->ToV8Value(extractedValue, context);
+    argv[0] = messageObject;
     frame->callFunctionEvenIfScriptDisabled(callback, navigatorQtValue->ToObject(), 1, argv);
 }
