@@ -50,14 +50,14 @@ class ListValue;
 
 class QtRenderViewObserver : public content::RenderViewObserver {
 public:
-    QtRenderViewObserver(content::RenderView* render_view, NavigatorQtExtension *extension);
+    QtRenderViewObserver(content::RenderView *render_view, NavigatorQtExtension *extension);
 
 private:
     void onFetchDocumentMarkup(quint64 requestId);
     void onFetchDocumentInnerText(quint64 requestId);
     void onMessageForNavigatorQt(const base::ListValue &);
 
-    virtual bool OnMessageReceived(const IPC::Message& message) Q_DECL_OVERRIDE;
+    virtual bool OnMessageReceived(const IPC::Message &message) Q_DECL_OVERRIDE;
 
     NavigatorQtExtension *m_navigatorQtExtension;
     DISALLOW_COPY_AND_ASSIGN(QtRenderViewObserver);

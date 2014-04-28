@@ -51,7 +51,7 @@
 #include "third_party/WebKit/public/web/WebFrame.h"
 #include "third_party/WebKit/public/web/WebView.h"
 
-QtRenderViewObserver::QtRenderViewObserver(content::RenderView* render_view, NavigatorQtExtension *extension)
+QtRenderViewObserver::QtRenderViewObserver(content::RenderView *render_view, NavigatorQtExtension *extension)
     : content::RenderViewObserver(render_view)
     , m_navigatorQtExtension(extension)
 {
@@ -78,7 +78,7 @@ void QtRenderViewObserver::onMessageForNavigatorQt(const base::ListValue &messag
     m_navigatorQtExtension->onMessage(message, render_view()->GetWebView());
 }
 
-bool QtRenderViewObserver::OnMessageReceived(const IPC::Message& message)
+bool QtRenderViewObserver::OnMessageReceived(const IPC::Message &message)
 {
     bool handled = true;
     IPC_BEGIN_MESSAGE_MAP(QtRenderViewObserver, message)

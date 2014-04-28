@@ -345,7 +345,7 @@ void QQuickWebEngineViewPrivate::javaScriptConsoleMessage(JavaScriptConsoleMessa
 
 void QQuickWebEngineViewPrivate::navigatorQtPostMessage(const QString &message)
 {
-    Q_EMIT e->messageRecieved(message);
+    Q_EMIT e->messageReceived(message);
 }
 
 void QQuickWebEngineViewPrivate::setDevicePixelRatio(qreal devicePixelRatio)

@@ -64,13 +64,13 @@ public:
     NavigatorQtExtension();
 
     // v8::Extension
-    virtual v8::Handle<v8::FunctionTemplate> GetNativeFunctionTemplate(v8::Isolate* isolate, v8::Handle<v8::String> name) Q_DECL_OVERRIDE;
+    virtual v8::Handle<v8::FunctionTemplate> GetNativeFunctionTemplate(v8::Isolate *isolate, v8::Handle<v8::String> name) Q_DECL_OVERRIDE;
 
     void onMessage(const base::ListValue &message, blink::WebView *);
 
 private:
     static content::RenderView *GetRenderView();
-    static void NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 
 };

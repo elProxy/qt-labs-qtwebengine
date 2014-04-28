@@ -67,19 +67,19 @@ static const char* const kNavigatorQtApi =
 
 content::RenderView *NavigatorQtExtension::GetRenderView()
 {
-      blink::WebFrame* webframe = blink::WebFrame::frameForCurrentContext();
-      DCHECK(webframe) << "There should be an active frame since we just got a native function called.";
-      if (!webframe)
-          return 0;
+    blink::WebFrame *webframe = blink::WebFrame::frameForCurrentContext();
+    DCHECK(webframe) << "There should be an active frame since we just got a native function called.";
+    if (!webframe)
+        return 0;
 
-      blink::WebView* webview = webframe->view();
-      if (!webview)
-          return 0;  // can happen during closing
+    blink::WebView *webview = webframe->view();
+    if (!webview)
+        return 0;  // can happen during closing
 
-      return content::RenderView::FromWebView(webview);
+    return content::RenderView::FromWebView(webview);
 }
 
-void NavigatorQtExtension::NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value>& args)
+void NavigatorQtExtension::NativeQtPostMessage(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
     content::RenderView *renderView = GetRenderView();
     if (!renderView || args.Length() != 1)
@@ -87,7 +87,7 @@ void NavigatorQtExtension::NativeQtPostMessage(const v8::FunctionCallbackInfo<v8
 
     QScopedPointer<content::V8ValueConverter> converter(content::V8ValueConverter::create());
     base::ListValue list;
-    base::Value* value = converter->FromV8Value(args[0], args.GetIsolate()->GetCurrentContext());
+    base::Value *value = converter->FromV8Value(args[0], args.GetIsolate()->GetCurrentContext());
     list.Set(0, value ? value : base::Value::CreateNullValue());
 
     renderView->Send(new QtRenderViewObserverHost_NavigatorQtPostMessage(renderView->GetRoutingID(), list));
@@ -109,16 +109,16 @@ v8::Handle<v8::FunctionTemplate> NavigatorQtExtension::GetNativeFunctionTemplate
 void NavigatorQtExtension::onMessage(const base::ListValue &message, blink::WebView *webView)
 {
     Q_ASSERT(webView);
-    const base::Value* extractedValue;
+    const base::Value *extractedValue;
     if (!message.Get(0, &extractedValue))
         return;
-    v8::Isolate* isolate = v8::Isolate::GetCurrent();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::HandleScope handleScope(isolate);
     v8::Handle<v8::Context> context = webView->mainFrame()->mainWorldScriptContext();
     v8::Context::Scope contextScope(context);
 
     v8::Handle<v8::Object> global(context->Global());
-    v8::Handle<v8::Value> navigatorValue(global->Get(v8::String::NewFromUtf8(isolate,"navigator")));
+    v8::Handle<v8::Value> navigatorValue(global->Get(v8::String::NewFromUtf8(isolate, "navigator")));
     if (!navigatorValue->IsObject())
         return;
     v8::Handle<v8::Value> navigatorQtValue(navigatorValue->ToObject()->Get(v8::String::NewFromUtf8(isolate, "qt")));
