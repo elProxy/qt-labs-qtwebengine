@@ -60,6 +60,7 @@ public:
     QtRenderViewObserverHost(content::WebContents*, WebContentsAdapterClient *adapterClient);
     void fetchDocumentMarkup(quint64 requestId);
     void fetchDocumentInnerText(quint64 requestId);
+    void postMessage(const QString &message);
 
 private:
     bool OnMessageReceived(const IPC::Message& message) Q_DECL_OVERRIDE;

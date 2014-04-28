@@ -559,6 +559,11 @@ void QQuickWebEngineViewExperimental::goForwardTo(int index)
     d_ptr->adapter->navigateToIndex(d_ptr->adapter->currentNavigationEntryIndex() + 1 + index);
 }
 
+void QQuickWebEngineViewExperimental::postMessage(const QString &message)
+{
+    d_ptr->adapter->postMessage(message);
+}
+
 void QQuickWebEngineView::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
 {
     QQuickItem::geometryChanged(newGeometry, oldGeometry);

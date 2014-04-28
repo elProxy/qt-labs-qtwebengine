@@ -109,6 +109,8 @@ public:
 
     void dpiScaleChanged();
 
+    void postMessage(const QString &message);
+
 private:
     Q_DISABLE_COPY(WebContentsAdapter);
     Q_DECLARE_PRIVATE(WebContentsAdapter);

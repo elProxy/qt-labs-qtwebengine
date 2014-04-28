@@ -620,3 +620,9 @@ void WebContentsAdapter::filesSelectedInChooser(const QStringList &fileList, Web
         files = listRecursively(QDir(fileList.first()));
     rvh->FilesSelectedInChooser(toVector<ui::SelectedFileInfo>(files), static_cast<content::FileChooserParams::Mode>(mode));
 }
+
+void WebContentsAdapter::postMessage(const QString& message)
+{
+    Q_D(WebContentsAdapter);
+    d->renderViewObserverHost->postMessage(message);
+}

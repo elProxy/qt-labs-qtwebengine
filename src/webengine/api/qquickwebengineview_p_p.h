@@ -98,6 +98,7 @@ public Q_SLOTS:
     void goBackTo(int index);
     void goForwardTo(int index);
     void runJavaScript(const QString&, const QJSValue & = QJSValue());
+    void postMessage(const QString &message);
 
 Q_SIGNALS:
     void newViewRequested(QQuickWebEngineNewViewRequest *request);

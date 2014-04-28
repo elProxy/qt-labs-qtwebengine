@@ -43,6 +43,10 @@
 
 #include <QtGlobal>
 
+namespace base {
+class ListValue;
+}
+
 class QtRenderViewObserver : public content::RenderViewObserver {
 public:
     QtRenderViewObserver(content::RenderView* render_view);
@@ -50,6 +54,7 @@ public:
 private:
     void onFetchDocumentMarkup(quint64 requestId);
     void onFetchDocumentInnerText(quint64 requestId);
+    void onNavigatorQtOnMessage(const base::ListValue &message);
 
     virtual bool OnMessageReceived(const IPC::Message& message) Q_DECL_OVERRIDE;
 

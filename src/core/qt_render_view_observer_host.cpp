@@ -47,6 +47,8 @@
 #include "type_conversion.h"
 #include "web_contents_adapter_client.h"
 
+#include <QDebug>
+
 QtRenderViewObserverHost::QtRenderViewObserverHost(content::WebContents *webContents, WebContentsAdapterClient *adapterClient)
     : content::WebContentsObserver(webContents)
     , m_adapterClient(adapterClient)
@@ -61,6 +63,14 @@ void QtRenderViewObserverHost::fetchDocumentMarkup(quint64 requestId)
 void QtRenderViewObserverHost::fetchDocumentInnerText(quint64 requestId)
 {
     Send(new QtRenderViewObserver_FetchDocumentInnerText(routing_id(), requestId));
+}
+
+void QtRenderViewObserverHost::postMessage(const QString& message)
+{
+    base::ListValue list;
+    list.Set(0, base::Value::CreateStringValue(toString16(message)));
+
+    Send(new QtRenderViewObserver_NavigatorQtOnMessage(routing_id(), list));
 }
 
 bool QtRenderViewObserverHost::OnMessageReceived(const IPC::Message& message)
@@ -88,7 +98,6 @@ void QtRenderViewObserverHost::onDidFetchDocumentInnerText(quint64 requestId, co
     m_adapterClient->didFetchDocumentInnerText(requestId, toQt(innerText));
 }
 
-#include <QDebug>
 void QtRenderViewObserverHost::onNavigatorQtPostMessage(const base::ListValue &message)
 {
     const base::Value* extractedValue;
